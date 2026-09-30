@@ -2,14 +2,6 @@
 
 Frontend-only Restaurant Mobile Application developed using React Native and Expo.
 
-## Student Information
-
-Student Name: Muhammad Abdullah
-Registration No: 9667
-Department: BS Software Engineering (BSSE)
-University: Abasyn University Islamabad
-Semester: Fall 2026
-
 ## Assignment
 
 Assignment No: 1
@@ -62,7 +54,7 @@ The customer can:
 - Make a reservation.
 - Track an order.
 
-Restaurant Manager
+## Restaurant Manager
 
 The manager can:
 
@@ -224,12 +216,10 @@ Custom Hooks| Reuse application logic
 - Local/Mock Data
 
 ## Project Structure
-
+```text
 RestaurantApp/
-│
 ├── A1/
 │   ├── SRS.pdf
-│   │
 │   └── UML/
 │       ├── Use Case Diagram
 │       ├── Class Diagram
@@ -239,25 +229,18 @@ RestaurantApp/
 │
 ├── src/
 │   ├── components/
-│   │
-│   ├── screens/
-│   │
-│   ├── context/
-│   │
-│   ├── reducers/
-│   │
-│   ├── hooks/
-│   │
-│   ├── data/
-│   │
-│   └── navigation/
+│   │   ├── screens/
+│   │   ├── context/
+│   │   ├── reducers/
+│   │   ├── hooks/
+│   │   ├── data/
+│   │   └── navigation/
 │
 ├── screenshots/
-│
 ├── App.js
 ├── package.json
 └── README.md
-
+```
 ## Installation
 
 First clone the repository:
@@ -319,7 +302,7 @@ The application includes the following screens:
 React Navigation is used for navigation between application screens.
 
 Main navigation flow:
-
+```text
 Login
   |
   ├── Customer
@@ -334,7 +317,7 @@ Login
   └── Manager
         |
         └── Manager Dashboard
-
+```
 ## Local and Mock Data
 
 The application uses local/mock data for demonstration.
@@ -381,32 +364,17 @@ The diagrams are:
 4. Activity Diagram
 5. Component Diagram
 
-Screenshots
+## Screenshots
+<img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/87e8b3dd-c616-45ae-a7d8-365b5caa37f9" />
+<img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/51e2cac5-1f23-4635-b831-f3f98b68dbd8" />
+<img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/37349915-27d1-4dba-b16d-e2653b0f358f" />
+<img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/ec27de7b-c123-4e11-bd3b-6562479a9ba8" />
+<img width="720" height="1600" alt="4e9e68e7-d14b-4e9a-9720-bee48504c555" src="https://github.com/user-attachments/assets/c4709a6f-5e90-42c3-9a63-a8a4432b2b49" />
+<img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/8e12573e-9fd4-434b-9031-72421d2394fa" />
+<img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/9bef33bc-41a0-4a2e-a48a-82f1fd71ffe5" />
 
-Application screenshots should be placed inside:
 
-screenshots/
-
-Recommended screenshots:
-
-screenshots/
-├── login.png
-├── signup.png
-├── menu.png
-├── search.png
-├── cart.png
-├── order-summary.png
-├── reservation.png
-├── order-tracking.png
-└── manager-dashboard.png
-
-## Demo Video
-
-Add the project demonstration video link below:
-
-Demo Video: PASTE_YOUR_VIDEO_LINK_HERE
-
-GitHub Repository
+## GitHub Repository
 
 ## Repository:
 
@@ -434,7 +402,7 @@ git commit -m "Q9 Implement Restaurant Reservation"
 
 git commit -m "Q10 Implement Order Tracking and Manager Dashboard"
 
-Testing
+## Testing
 
 The application should be tested for:
 
@@ -455,10 +423,9 @@ The application should be tested for:
 - Light/Dark theme.
 - Navigation between screens.
 
-Frontend Only
+## Frontend Only
 
 This project is strictly frontend-only.
-
 The project does not use:
 
 - Backend server.
