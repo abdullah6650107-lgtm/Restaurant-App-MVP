@@ -343,27 +343,6 @@ It can be used to store application information such as:
 - Theme preference.
 - Local application data.
 
-## SRS Document
-
-The Software Requirements Specification document is included in:
-
-## A1/SRS.pdf
-## UML Diagrams
-
-The project contains five required UML diagrams.
-
-They are stored inside:
-
-A1/UML/
-
-The diagrams are:
-
-1. Use Case Diagram
-2. Class Diagram
-3. Sequence Diagram
-4. Activity Diagram
-5. Component Diagram
-
 ## Screenshots
 <img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/87e8b3dd-c616-45ae-a7d8-365b5caa37f9" />
 <img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/51e2cac5-1f23-4635-b831-f3f98b68dbd8" />
