@@ -34,7 +34,7 @@ async function getOrders(req, res, next) {
 
 async function createOrder(req, res, next) {
   try {
-    const { items, notes } = req.body;
+    const { items, notes, customerName, address, paymentMethod } = req.body;
 
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: "Order must include at least one item." });
@@ -64,12 +64,18 @@ async function createOrder(req, res, next) {
     }
 
     // Never trust a client-supplied total price. We calculate totals on the server using the current menu price records.
-    const total = Number(subtotal.toFixed(2));
+    const deliveryFee = 120;
+    subtotal = Number(subtotal.toFixed(2));
+    const total = Number((subtotal + deliveryFee).toFixed(2));
     const order = await Order.create({
       customer: req.user._id,
       items: normalizedItems,
-      subtotal: total,
+      subtotal,
       total,
+      deliveryFee,
+      customerName: customerName ? String(customerName).trim() : req.user.name,
+      address: address ? String(address).trim() : "",
+      paymentMethod: paymentMethod ? String(paymentMethod).trim() : "Cash on Delivery",
       notes: notes ? String(notes).trim() : "",
       status: "pending",
     });

@@ -6,7 +6,7 @@ const { getMyReservations, getAllReservations, createReservation, updateReservat
 const router = express.Router();
 router.post("/", protect, createReservation);
 router.get("/my", protect, getMyReservations);
-router.get("/", protect, managerOnly, getAllReservations);
+router.get("/", protect, getAllReservations);
 router.patch("/:id", protect, managerOnly, updateReservationStatus);
 router.delete("/:id", protect, async (req, res, next) => {
   try {

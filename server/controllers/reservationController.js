@@ -8,7 +8,7 @@ function isValidObjectId(id) {
 
 async function getMyReservations(req, res, next) {
   try {
-    const reservations = await Reservation.find({ customer: req.user._id }).populate("table", "tableNumber capacity location").sort({ reservationDate: 1 });
+    const reservations = await Reservation.find({ customer: req.user._id }).populate("customer", "name email").populate("table", "tableNumber capacity location").sort({ reservationDate: 1 });
     return res.json({ reservations });
   } catch (error) {
     return next(error);
@@ -17,7 +17,8 @@ async function getMyReservations(req, res, next) {
 
 async function getAllReservations(req, res, next) {
   try {
-    const reservations = await Reservation.find().populate("customer", "name email").populate("table", "tableNumber capacity location").sort({ reservationDate: 1 });
+    const query = req.user.role === "manager" ? {} : { customer: req.user._id };
+    const reservations = await Reservation.find(query).populate("customer", "name email").populate("table", "tableNumber capacity location").sort({ reservationDate: 1 });
     return res.json({ reservations });
   } catch (error) {
     return next(error);
@@ -26,9 +27,9 @@ async function getAllReservations(req, res, next) {
 
 async function createReservation(req, res, next) {
   try {
-    const { tableId, date, time, partySize, notes } = req.body;
+    const { tableId, date, time, partySize, notes, name } = req.body;
 
-    if (!tableId || !isValidObjectId(String(tableId))) {
+    if (tableId && !isValidObjectId(String(tableId))) {
       return res.status(400).json({ error: "A valid table ID is required." });
     }
 
@@ -41,14 +42,10 @@ async function createReservation(req, res, next) {
       return res.status(400).json({ error: "Party size must be at least 1." });
     }
 
-    const table = await Table.findById(tableId);
-    if (!table) {
-      return res.status(404).json({ error: "Table not found." });
-    }
-
-    if (partyCount > table.capacity) {
-      return res.status(400).json({ error: "Party size exceeds table capacity." });
-    }
+    const tables = tableId
+      ? [await Table.findById(tableId)]
+      : await Table.find({ isAvailable: true, capacity: { $gte: partyCount } }).sort({ capacity: 1, tableNumber: 1 });
+    if (!tables.length || !tables[0]) return res.status(404).json({ error: "No suitable table was found." });
 
     const reservationDate = new Date(`${date}T${time}:00`);
     if (Number.isNaN(reservationDate.getTime())) {
@@ -58,21 +55,24 @@ async function createReservation(req, res, next) {
     const start = new Date(reservationDate);
     const end = new Date(start.getTime() + 90 * 60 * 1000);
 
-    const conflict = await Reservation.findOne({
-      table: table._id,
-      status: { $ne: "declined" },
-      reservationDate: {
-        $lt: end,
-        $gt: new Date(start.getTime() - 90 * 60 * 1000),
-      },
-    });
+    let table = null;
+    for (const candidate of tables) {
+      if (partyCount > candidate.capacity) continue;
+      const conflict = await Reservation.findOne({
+        table: candidate._id,
+        status: { $ne: "declined" },
+        reservationDate: { $lt: end, $gt: new Date(start.getTime() - 90 * 60 * 1000) },
+      });
+      if (!conflict) { table = candidate; break; }
+    }
 
-    if (conflict) {
+    if (!table) {
       return res.status(409).json({ error: "That table is already booked for the requested time slot." });
     }
 
     const reservation = await Reservation.create({
       customer: req.user._id,
+      customerName: name ? String(name).trim() : req.user.name,
       table: table._id,
       reservationDate,
       partySize: partyCount,

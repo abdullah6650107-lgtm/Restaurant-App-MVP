@@ -179,7 +179,7 @@ export default function ReservationScreen({ navigation }) {
               accessibilityLabel="Add one guest"
               style={[styles.guestButton, { backgroundColor: theme.panelAlt }]}
               onPress={() => {
-                setGuests((count) => Math.min(12, count + 1));
+                setGuests((count) => Math.min(8, count + 1));
                 setFeedback(null);
               }}
               accessibilityRole="button"

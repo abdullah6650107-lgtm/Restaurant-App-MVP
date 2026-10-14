@@ -24,7 +24,7 @@ export function useAuth({ loadAccountData, clearAccountData, clearShoppingData }
         if (!active) return;
         setToken(savedToken);
         setUser(savedUser);
-        await loadAccountData(savedToken);
+        await loadAccountData(savedToken, savedUser.role);
       } catch (error) {
         if (error.status === 401) {
           await clearSessionToken();
@@ -53,7 +53,7 @@ export function useAuth({ loadAccountData, clearAccountData, clearShoppingData }
     setUser(session.user);
     setSessionError("");
     try {
-      await loadAccountData(session.token);
+      await loadAccountData(session.token, session.user.role);
     } catch (error) {
       setSessionError(error.message);
     }

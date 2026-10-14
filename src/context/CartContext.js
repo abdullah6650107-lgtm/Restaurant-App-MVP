@@ -45,10 +45,10 @@ export function CartProvider({ children }) {
     setFavorites([]);
   }, [clearCart, setFavorites]);
 
-  const loadAccountData = useCallback(async (sessionToken) => {
+  const loadAccountData = useCallback(async (sessionToken, role) => {
     const [ordersResponse, reservationsResponse] = await Promise.all([
       api.getOrders(sessionToken),
-      api.getReservations(sessionToken),
+      api.getReservations(sessionToken, role),
     ]);
     setOrderHistory(ordersResponse.orders);
     setReservations(reservationsResponse.reservations);

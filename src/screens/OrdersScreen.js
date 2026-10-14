@@ -13,11 +13,11 @@ import { useCart } from "../context/CartContext";
 import BottomNav from "../components/BottomNav";
 
 export default function OrdersScreen({ navigation }) {
-  const { orderHistory, theme, token, loadAccountData } = useCart();
+  const { orderHistory, theme, token, user, loadAccountData } = useCart();
 
   useFocusEffect(useCallback(() => {
-    if (token) loadAccountData(token).catch(() => {});
-  }, [loadAccountData, token]));
+    if (token) loadAccountData(token, user?.role).catch(() => {});
+  }, [loadAccountData, token, user?.role]));
 
   const statusColor = {
     Confirmed: theme.accent,

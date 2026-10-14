@@ -46,6 +46,18 @@ function normalizeIds(value) {
   if (value && typeof value === "object") {
     const normalized = Object.fromEntries(Object.entries(value).map(([key, child]) => [key, normalizeIds(child)]));
     if (normalized.id === undefined && normalized._id !== undefined) normalized.id = String(normalized._id);
+    if (normalized.reservationDate && Number.isFinite(Date.parse(normalized.reservationDate))) {
+      const reservationDate = new Date(normalized.reservationDate);
+      const pad = (part) => String(part).padStart(2, "0");
+      normalized.date = `${reservationDate.getFullYear()}-${pad(reservationDate.getMonth() + 1)}-${pad(reservationDate.getDate())}`;
+      normalized.time = reservationDate.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      normalized.guests = normalized.partySize;
+      normalized.name = normalized.customerName || normalized.customer?.name || "";
+    }
+    if (normalized.total !== undefined && Array.isArray(normalized.items) && normalized.status) {
+      const orderStatuses = { pending: "Confirmed", preparing: "Preparing", ready: "On the Way", served: "Delivered", cancelled: "Cancelled" };
+      normalized.status = orderStatuses[normalized.status] || normalized.status;
+    }
     return normalized;
   }
   return value;
@@ -103,26 +115,38 @@ export const api = {
   },
 
   createOrder(order, token) {
-    return request("/api/orders", { method: "POST", token, body: order });
+    const body = {
+      ...order,
+      items: (order.items || []).map((item) => ({ menuItem: item.menuItem || item.id, quantity: item.quantity })),
+    };
+    return request("/api/orders", { method: "POST", token, body });
   },
 
   updateOrderStatus(id, status, token) {
+    const backendStatuses = { Confirmed: "pending", Preparing: "preparing", "On the Way": "ready", Delivered: "served", Cancelled: "cancelled" };
     return request(`${itemPath("/api/orders", id)}/status`, {
       method: "PATCH",
       token,
-      body: { status },
+      body: { status: backendStatuses[status] || status },
     });
   },
 
-  getReservations(token) {
-    return request("/api/reservations", { token });
+  getReservations(token, role) {
+    return request(role === "manager" ? "/api/reservations" : "/api/reservations/my", { token });
   },
 
   createReservation(reservation, token) {
+    const timeMatch = String(reservation.time || "").match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    let time = reservation.time;
+    if (timeMatch) {
+      let hours = Number(timeMatch[1]) % 12;
+      if (timeMatch[3].toUpperCase() === "PM") hours += 12;
+      time = `${String(hours).padStart(2, "0")}:${timeMatch[2]}`;
+    }
     return request("/api/reservations", {
       method: "POST",
       token,
-      body: reservation,
+      body: { ...reservation, time, partySize: reservation.partySize || reservation.guests },
     });
   },
 

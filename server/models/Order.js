@@ -52,6 +52,10 @@ const orderSchema = new mongoose.Schema(
       required: true,
       min: 0.01,
     },
+    deliveryFee: { type: Number, required: true, min: 0, default: 0 },
+    customerName: { type: String, trim: true, maxlength: 100, default: "" },
+    address: { type: String, trim: true, maxlength: 500, default: "" },
+    paymentMethod: { type: String, trim: true, default: "Cash on Delivery" },
     status: {
       type: String,
       enum: ["pending", "preparing", "ready", "served", "cancelled"],

@@ -15,6 +15,8 @@ Requirements: Node.js LTS and MongoDB (local or Atlas).
 
 The API listens on port 5000. Health check: http://localhost:5000/api/health. For MongoDB Atlas set MONGO_URI in server/.env and USE_MEMORY_DB=false. Never commit server/.env, a database password, or a real connection string. Commit only server/.env.example.
 
+To verify the client/server API contract using an isolated temporary MongoDB instance, run `npm run smoke` from the server folder. This does not use or modify the configured application database.
+
 ## Run the mobile app
 
 At project root:
@@ -52,7 +54,7 @@ Base URL: http://localhost:5000. Protected requests need Authorization: Bearer <
 | POST | /api/orders | Signed in | Place order |
 | PATCH | /api/orders/:id/status | Manager | Change order status |
 | GET | /api/reservations/my | Signed in | Customer reservations |
-| GET | /api/reservations | Manager | List reservations |
+| GET | /api/reservations | Signed in | List own reservations or all for manager |
 | POST | /api/reservations | Signed in | Create reservation |
 | PATCH | /api/reservations/:id | Manager | Accept/decline reservation |
 | DELETE | /api/reservations/:id | Owner/manager | Cancel reservation |

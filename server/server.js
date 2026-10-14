@@ -69,15 +69,17 @@ app.use((error, req, res, next) => {
 });
 
 async function startServer() {
-  try {
-    await connectDB();
-    app.listen(PORT, process.env.HOST || "0.0.0.0", () => {
-      console.log(`Restaurant API listening on http://${process.env.HOST || "0.0.0.0"}:${PORT}`);
-    });
-  } catch (error) {
-    console.error("Failed to start server:", error.message);
-    process.exit(1);
-  }
+  await connectDB();
+  return app.listen(PORT, process.env.HOST || "0.0.0.0", () => {
+    console.log(`Restaurant API listening on http://${process.env.HOST || "0.0.0.0"}:${PORT}`);
+  });
 }
 
-startServer();
+if (require.main === module) {
+  startServer().catch((error) => {
+    console.error("Failed to start server:", error.message);
+    process.exit(1);
+  });
+}
+
+module.exports = { app, startServer };

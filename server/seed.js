@@ -1,5 +1,4 @@
 require("dotenv").config();
-const bcrypt = require("bcryptjs");
 const mongoose = require("mongoose");
 const { connectDB, disconnectDB } = require("./config/db");
 const User = require("./models/User");
@@ -41,7 +40,7 @@ async function seedDatabase() {
   const existingTables = await Table.countDocuments();
 
   if (existingUsers === 0) {
-    await User.insertMany([
+    await User.create([
       {
         name: "Customer Demo",
         email: "customer@example.com",

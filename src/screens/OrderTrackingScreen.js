@@ -6,10 +6,10 @@ import { useCart } from "../context/CartContext";
 const statusSteps = ["Confirmed", "Preparing", "On the Way", "Delivered"];
 
 export default function OrderTrackingScreen({ route, navigation }) {
-  const { orderHistory, theme, token, loadAccountData } = useCart();
+  const { orderHistory, theme, token, user, loadAccountData } = useCart();
   useFocusEffect(useCallback(() => {
-    if (token) loadAccountData(token).catch(() => {});
-  }, [loadAccountData, token]));
+    if (token) loadAccountData(token, user?.role).catch(() => {});
+  }, [loadAccountData, token, user?.role]));
   const routeOrder = route.params?.order;
   const order = orderHistory.find((item) => item.id === routeOrder?.id) || routeOrder;
   const currentStatus = order?.status || "Confirmed";
