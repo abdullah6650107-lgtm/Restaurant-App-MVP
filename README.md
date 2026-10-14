@@ -167,7 +167,7 @@ RestaurantApp/
 
 Screenshots are not available in the repository yet. Add genuine screenshots from the running app under `A2/screenshots/` and link them here before submission.
 
-**Demo video:** Add the recording link here when available. Suggested coverage: customer ordering, manager status changes, reservation handling, and the app's refresh behavior.
+**Demo video:** [Watch the Restaurant App demo](https://youtu.be/GvPe9FIbIhk?si=r_W3dfkEyPKHz2Ma).
 
 ## Known limitations
 
