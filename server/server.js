@@ -2,6 +2,7 @@ require("dotenv").config({ path: require("path").join(__dirname, ".env") });
 const express = require("express");
 const cors = require("cors");
 const { connectDB } = require("./config/db");
+const { seedDatabase } = require("./seed");
 const { protect, managerOnly } = require("./middleware/auth");
 const User = require("./models/User");
 const Order = require("./models/Order");
@@ -70,6 +71,9 @@ app.use((error, req, res, next) => {
 
 async function startServer() {
   await connectDB();
+  if (process.env.USE_MEMORY_DB === "true") {
+    await seedDatabase({ connect: false, disconnect: false });
+  }
   return app.listen(PORT, process.env.HOST || "0.0.0.0", () => {
     console.log(`Restaurant API listening on http://${process.env.HOST || "0.0.0.0"}:${PORT}`);
   });

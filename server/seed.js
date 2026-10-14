@@ -32,8 +32,8 @@ const tableSeed = [
   { tableNumber: 6, capacity: 8, location: "outdoor" }
 ];
 
-async function seedDatabase() {
-  await connectDB();
+async function seedDatabase({ connect = true, disconnect = true } = {}) {
+  if (connect) await connectDB();
 
   const existingUsers = await User.countDocuments();
   const existingMenu = await MenuItem.countDocuments();
@@ -69,10 +69,14 @@ async function seedDatabase() {
   const tableCount = await Table.countDocuments();
 
   console.log(`Seed complete. Users: ${userCount}, MenuItems: ${menuCount}, Tables: ${tableCount}`);
-  await disconnectDB();
+  if (disconnect) await disconnectDB();
 }
 
-seedDatabase().catch((error) => {
-  console.error("Seeding failed:", error);
-  process.exit(1);
-});
+if (require.main === module) {
+  seedDatabase().catch((error) => {
+    console.error("Seeding failed:", error);
+    process.exit(1);
+  });
+}
+
+module.exports = { seedDatabase };
