@@ -1,3 +1,3 @@
 # Submission screenshots
 
-Add genuine screenshots captured from the running mobile app here before submission. No screenshots were available in the workspace.
+The app screenshots are compiled in [Screen Shots.pdf](Screen%20Shots.pdf).

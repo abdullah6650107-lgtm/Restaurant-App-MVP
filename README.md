@@ -165,7 +165,7 @@ RestaurantApp/
 
 ## Screenshots and demo video
 
-Screenshots are not available in the repository yet. Add genuine screenshots from the running app under `A2/screenshots/` and link them here before submission.
+App screenshots are included in [`A2/screenshots/Screen Shots.pdf`](A2/screenshots/Screen%20Shots.pdf).
 
 **Demo video:** [Watch the Restaurant App demo](https://youtu.be/GvPe9FIbIhk?si=r_W3dfkEyPKHz2Ma).
 
