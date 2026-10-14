@@ -1,14 +1,22 @@
 import React, { useEffect } from "react";
 import { View, Text, StyleSheet, Image } from "react-native";
+import { useCart } from "../context/CartContext";
 
 export default function SplashScreen({ navigation }) {
+  const { user, authReady } = useCart();
+
   useEffect(() => {
+    if (!authReady) return undefined;
     const timer = setTimeout(() => {
-      navigation.replace("Login");
-    }, 1800);
+      navigation.replace(
+        user
+          ? (user.role === "manager" ? "Dashboard" : "Menu")
+          : "Login"
+      );
+    }, 800);
 
     return () => clearTimeout(timer);
-  }, [navigation]);
+  }, [authReady, navigation, user]);
 
   return (
     <View style={styles.container}>

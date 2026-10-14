@@ -1,23 +1,26 @@
-import React, { useState } from "react";
+import React from "react";
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useCart } from "../context/CartContext";
+import { useReview } from "../hooks/useReview";
 
 export default function ReviewScreen({ navigation }) {
-  const { theme } = useCart();
-  const [rating, setRating] = useState(5);
-  const [review, setReview] = useState("");
+  const { theme, token } = useCart();
+  const { rating, setRating, review, setReview, submitReview } = useReview(token);
 
-  const submitReview = () => {
+  const handleSubmitReview = async () => {
     if (!review.trim()) {
       Alert.alert("Please add a review");
       return;
     }
 
-    Alert.alert("Thanks!", `Your ${rating}-star review was submitted.`);
-    setReview("");
-    setRating(5);
-    navigation.goBack();
+    try {
+      await submitReview();
+      Alert.alert("Thanks!", `Your ${rating}-star review was submitted.`);
+      navigation.goBack();
+    } catch (error) {
+      Alert.alert("Review Failed", error.message);
+    }
   };
 
   return (
@@ -57,7 +60,7 @@ export default function ReviewScreen({ navigation }) {
       />
       <Text style={[styles.characterCount, { color: theme.textMuted }]}>{review.length}/500</Text>
 
-      <TouchableOpacity style={[styles.button, { backgroundColor: theme.accent }]} onPress={submitReview}>
+      <TouchableOpacity style={[styles.button, { backgroundColor: theme.accent }]} onPress={handleSubmitReview}>
         <Text style={styles.buttonText}>Submit Review</Text>
         <Ionicons name="arrow-forward" size={18} color="#fff" />
       </TouchableOpacity>

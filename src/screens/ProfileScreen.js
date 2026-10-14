@@ -6,17 +6,24 @@ import {
   TouchableOpacity,
   ScrollView,
   Switch,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useCart } from "../context/CartContext";
 import BottomNav from "../components/BottomNav";
 
 export default function ProfileScreen({ navigation }) {
-  const { theme, darkMode, toggleDarkMode } = useCart();
-  const accountLinks = [
-    { label: "Order history", detail: "Track recent deliveries", icon: "receipt-outline", screen: "Orders" },
-    { label: "Reservations", detail: "Manage your table bookings", icon: "calendar-outline", screen: "Reservations" },
-  ];
+  const { theme, darkMode, toggleDarkMode, user, signOut } = useCart();
+  const isManager = user?.role === "manager";
+  const accountLinks = isManager
+    ? [
+        { label: "Manager dashboard", detail: "Manage restaurant operations", icon: "grid-outline", screen: "Dashboard" },
+      ]
+    : [
+        { label: "Order history", detail: "Track recent deliveries", icon: "receipt-outline", screen: "Orders" },
+        { label: "Reservations", detail: "Manage your table bookings", icon: "calendar-outline", screen: "Reservations" },
+        { label: "Leave a review", detail: "Share feedback about your experience", icon: "star-outline", screen: "Review" },
+      ];
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
@@ -26,16 +33,18 @@ export default function ProfileScreen({ navigation }) {
 
       <View style={[styles.profileCard, { backgroundColor: theme.panel, borderColor: theme.border }]}>
         <View style={[styles.avatar, { backgroundColor: theme.accentSoft }]}>
-          <Text style={[styles.avatarText, { color: theme.accent }]}>A</Text>
+          <Text style={[styles.avatarText, { color: theme.accent }]}>{user?.name?.[0]?.toUpperCase() || "?"}</Text>
         </View>
         <View style={styles.profileInfo}>
-          <Text style={[styles.name, { color: theme.text }]}>Abdullah</Text>
-          <Text style={[styles.info, { color: theme.textMuted }]}>customer@example.com</Text>
-          <Text style={[styles.role, { color: theme.accent }]}>CUSTOMER</Text>
+          <Text style={[styles.name, { color: theme.text }]}>{user?.name || "Account"}</Text>
+          <Text style={[styles.info, { color: theme.textMuted }]}>{user?.email || ""}</Text>
+          <Text style={[styles.role, { color: theme.accent }]}>{user?.role?.toUpperCase()}</Text>
         </View>
       </View>
 
-      <Text style={[styles.sectionTitle, { color: theme.text }]}>Your activity</Text>
+      <Text style={[styles.sectionTitle, { color: theme.text }]}>
+        {isManager ? "Manager tools" : "Your activity"}
+      </Text>
       <View style={[styles.linkGroup, { backgroundColor: theme.panel, borderColor: theme.border }]}>
         {accountLinks.map((link, index) => (
           <TouchableOpacity
@@ -76,7 +85,15 @@ export default function ProfileScreen({ navigation }) {
 
       <TouchableOpacity
         style={[styles.logoutButton, { borderColor: theme.danger }]}
-        onPress={() => navigation.navigate("Login")}
+        onPress={async () => {
+          try {
+            await signOut();
+          } catch (error) {
+            Alert.alert("Logout Failed", error.message);
+          } finally {
+            navigation.reset({ index: 0, routes: [{ name: "Login" }] });
+          }
+        }}
       >
         <Ionicons name="log-out-outline" size={18} color={theme.danger} />
         <Text style={[styles.logoutText, { color: theme.danger }]}>Log out</Text>

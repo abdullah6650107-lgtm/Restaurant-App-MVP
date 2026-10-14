@@ -11,18 +11,16 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-import users from "../data/users";
 import { useCart } from "../context/CartContext";
 
 export default function LoginScreen({ navigation }) {
-  const { theme } = useCart();
+  const { theme, signIn, signUp, sessionError } = useCart();
   const [mode, setMode] = useState("login");
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState("customer");
 
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
@@ -73,52 +71,29 @@ export default function LoginScreen({ navigation }) {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validate()) {
       return;
     }
 
     setIsSubmitting(true);
-
-    setTimeout(() => {
+    try {
       if (mode === "login") {
-        const user = users.find(
-          (item) =>
-            item.email.toLowerCase() === email.trim().toLowerCase() &&
-            item.password === password
-        );
-
-        setIsSubmitting(false);
-
-        if (!user) {
-          Alert.alert(
-            "Login Failed",
-            "Invalid email or password."
-          );
-          return;
-        }
-
-        if (user.role === "customer") {
-          navigation.navigate("Menu");
-        } else {
-          navigation.navigate("Dashboard");
-        }
+        const user = await signIn(email.trim(), password);
+        navigation.replace(user.role === "manager" ? "Dashboard" : "Menu");
       } else {
-        setIsSubmitting(false);
-
-        Alert.alert(
-          "Signup Successful",
-          `Account created for ${fullName}.`
-        );
-
-        setMode("login");
+        await signUp(fullName.trim(), email.trim(), password);
+        navigation.replace("Menu");
         setFullName("");
-        setEmail("");
         setPassword("");
         setConfirmPassword("");
         setErrors({});
       }
-    }, 1000);
+    } catch (error) {
+      Alert.alert(mode === "login" ? "Login Failed" : "Signup Failed", error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -131,6 +106,9 @@ export default function LoginScreen({ navigation }) {
       <Text style={[styles.subtitle, { color: theme.textMuted }]}>
         {mode === "login" ? "Welcome Back!" : "Create Account"}
       </Text>
+      {sessionError ? (
+        <Text style={[styles.error, { color: theme.danger }]}>{sessionError}</Text>
+      ) : null}
 
       {mode === "signup" && (
         <>
@@ -215,33 +193,6 @@ export default function LoginScreen({ navigation }) {
             </Text>
           ) : null}
 
-          <Text style={[styles.roleTitle, { color: theme.text }]}>
-            Select Role
-          </Text>
-
-          <View style={styles.roleContainer}>
-            <TouchableOpacity
-              style={[
-                styles.roleButton,
-                { backgroundColor: theme.panel, borderColor: theme.border },
-                role === "customer" && styles.selectedRole,
-              ]}
-              onPress={() => setRole("customer")}
-            >
-              <Text style={{ color: theme.text }}>Customer</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.roleButton,
-                { backgroundColor: theme.panel, borderColor: theme.border },
-                role === "manager" && styles.selectedRole,
-              ]}
-              onPress={() => setRole("manager")}
-            >
-              <Text style={{ color: theme.text }}>Manager</Text>
-            </TouchableOpacity>
-          </View>
         </>
       )}
 

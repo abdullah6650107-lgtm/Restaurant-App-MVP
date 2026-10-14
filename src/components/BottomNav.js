@@ -1,59 +1,54 @@
 import React from "react";
+import { Link } from "expo-router";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useCart } from "../context/CartContext";
 
-export default function BottomNav({ navigation, activeTab }) {
-  const { theme, totalItems } = useCart();
-  const items = [
-    { label: "Menu", name: "Menu", icon: "restaurant-outline", activeIcon: "restaurant" },
-    { label: "Book", name: "Reservations", icon: "calendar-outline", activeIcon: "calendar" },
-    { label: "Cart", name: "Cart", icon: "bag-handle-outline", activeIcon: "bag-handle" },
-    { label: "Orders", name: "Orders", icon: "receipt-outline", activeIcon: "receipt" },
-    { label: "Profile", name: "Profile", icon: "person-outline", activeIcon: "person" },
-  ];
+export default function BottomNav({ activeTab }) {
+  const { theme, totalItems, user } = useCart();
+  const items = user?.role === "manager"
+    ? [
+        { label: "Dashboard", name: "Dashboard", href: "/dashboard", icon: "grid-outline", activeIcon: "grid" },
+        { label: "Profile", name: "Profile", href: "/profile", icon: "person-outline", activeIcon: "person" },
+      ]
+    : [
+        { label: "Menu", name: "Menu", href: "/menu", icon: "restaurant-outline", activeIcon: "restaurant" },
+        { label: "Book", name: "Reservations", href: "/reservations", icon: "calendar-outline", activeIcon: "calendar" },
+        { label: "Cart", name: "Cart", href: "/cart", icon: "bag-handle-outline", activeIcon: "bag-handle" },
+        { label: "Orders", name: "Orders", href: "/orders", icon: "receipt-outline", activeIcon: "receipt" },
+        { label: "Profile", name: "Profile", href: "/profile", icon: "person-outline", activeIcon: "person" },
+      ];
 
   return (
-    <View
-      style={[
-        styles.container,
-        { backgroundColor: theme.panel, borderTopColor: theme.border },
-      ]}
-    >
+    <View style={[styles.container, { backgroundColor: theme.panel, borderTopColor: theme.border }]}>
       {items.map((item) => {
         const isActive = activeTab === item.name;
         const badgeCount = item.name === "Cart" ? totalItems : 0;
-
         return (
-          <TouchableOpacity
-            key={item.name}
-            style={styles.tab}
-            onPress={() => navigation.navigate(item.name)}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: isActive }}
-            accessibilityLabel={`${item.label}${badgeCount ? `, ${badgeCount} items` : ""}`}
-          >
-            <View style={styles.iconWrap}>
-              <Ionicons
-                name={isActive ? item.activeIcon : item.icon}
-                size={21}
-                color={isActive ? theme.accent : theme.textMuted}
-              />
-              {badgeCount > 0 && (
-                <View style={[styles.badge, { backgroundColor: theme.accent }]}>
-                  <Text style={styles.badgeText}>{badgeCount > 9 ? "9+" : badgeCount}</Text>
-                </View>
-              )}
-            </View>
-            <Text
-              style={[
-                styles.tabText,
-                { color: isActive ? theme.accent : theme.textMuted },
-              ]}
+          <Link key={item.name} href={item.href} asChild>
+            <TouchableOpacity
+              style={styles.tab}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: isActive }}
+              accessibilityLabel={badgeCount ? item.label + ", " + badgeCount + " items" : item.label}
             >
-              {item.label}
-            </Text>
-          </TouchableOpacity>
+              <View style={styles.iconWrap}>
+                <Ionicons
+                  name={isActive ? item.activeIcon : item.icon}
+                  size={21}
+                  color={isActive ? theme.accent : theme.textMuted}
+                />
+                {badgeCount > 0 && (
+                  <View style={[styles.badge, { backgroundColor: theme.accent }]}>
+                    <Text style={styles.badgeText}>{badgeCount > 9 ? "9+" : badgeCount}</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={[styles.tabText, { color: isActive ? theme.accent : theme.textMuted }]}>
+                {item.label}
+              </Text>
+            </TouchableOpacity>
+          </Link>
         );
       })}
     </View>

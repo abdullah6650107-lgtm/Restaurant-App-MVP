@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import {
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,43 +13,114 @@ import { useCart } from "../context/CartContext";
 const timeSlots = ["12:00 PM", "1:30 PM", "3:00 PM", "6:00 PM", "7:30 PM", "9:00 PM"];
 
 export default function ReservationScreen({ navigation }) {
-  const { reservations, addReservation, cancelReservation, theme } = useCart();
-  const [name, setName] = useState("");
+  const { reservations, addReservation, cancelReservation, theme, user } = useCart();
+  const [name, setName] = useState(user?.name || "");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState(null);
   const [date, setDate] = useState("");
   const [time, setTime] = useState(timeSlots[0]);
   const [guests, setGuests] = useState(2);
 
-  const bookTable = () => {
-    const reservationDate = new Date(`${date}T00:00:00`);
+  const bookTable = async () => {
+    if (isSubmitting) return;
+    const [year, month, day] = date.split("-").map(Number);
+    const reservationDate = new Date(year, month - 1, day);
+    const validDate = reservationDate.getFullYear() === year && reservationDate.getMonth() === month - 1 && reservationDate.getDate() === day;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    if (!name.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(reservationDate.getTime())) {
-      Alert.alert("Check your details", "Enter your name and a date in YYYY-MM-DD format.");
+    if (!name.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !validDate) {
+      setFeedback({
+        type: "error",
+        title: "Check your details",
+        message: "Enter your name and a valid date in YYYY-MM-DD format.",
+      });
       return;
     }
 
     if (reservationDate < today) {
-      Alert.alert("Choose a future date", "Reservations cannot be made for a past date.");
+      setFeedback({
+        type: "error",
+        title: "Choose a future date",
+        message: "Reservations cannot be made for a past date.",
+      });
       return;
     }
 
-    addReservation({ name: name.trim(), date, time, guests });
-    setName("");
-    Alert.alert("Table reserved", `Your table for ${guests} is booked for ${date} at ${time}.`);
+    setIsSubmitting(true);
+    setFeedback(null);
+    try {
+      await addReservation({ name: name.trim(), date, time, guests });
+      setName("");
+      setFeedback({
+        type: "success",
+        title: "Table reserved",
+        message: `Your table for ${guests} is booked for ${date} at ${time}.`,
+      });
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        title: "Reservation failed",
+        message: error.message,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
+  const handleCancelReservation = async (reservationId) => {
+    try {
+      await cancelReservation(reservationId);
+      setFeedback({
+        type: "success",
+        title: "Reservation cancelled",
+        message: "Your reservation was cancelled.",
+      });
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        title: "Could not cancel reservation",
+        message: error.message,
+      });
+    }
+  };
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={[styles.title, { color: theme.text }]}>Reserve a Table</Text>
         <Text style={[styles.subtitle, { color: theme.textMuted }]}>Choose a date and dining time.</Text>
 
+        {feedback && (
+          <View
+            accessibilityRole="alert"
+            style={[
+              styles.feedback,
+              {
+                backgroundColor: theme.panel,
+                borderColor: feedback.type === "success" ? theme.success : theme.danger,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.feedbackTitle,
+                { color: feedback.type === "success" ? theme.success : theme.danger },
+              ]}
+            >
+              {feedback.title}
+            </Text>
+            <Text style={[styles.feedbackMessage, { color: theme.text }]}>{feedback.message}</Text>
+          </View>
+        )}
+
         <View style={[styles.form, { backgroundColor: theme.panel, borderColor: theme.border }]}>
           <Text style={[styles.label, { color: theme.text }]}>Name</Text>
           <TextInput
             value={name}
-            onChangeText={setName}
+            onChangeText={(value) => {
+              setName(value);
+              setFeedback(null);
+            }}
             placeholder="Your name"
             placeholderTextColor={theme.textMuted}
             style={[styles.input, { color: theme.text, backgroundColor: theme.input, borderColor: theme.border }]}
@@ -59,7 +129,10 @@ export default function ReservationScreen({ navigation }) {
           <Text style={[styles.label, { color: theme.text }]}>Date</Text>
           <TextInput
             value={date}
-            onChangeText={setDate}
+            onChangeText={(value) => {
+              setDate(value);
+              setFeedback(null);
+            }}
             placeholder="YYYY-MM-DD, e.g. 2026-10-12"
             placeholderTextColor={theme.textMuted}
             keyboardType="numbers-and-punctuation"
@@ -71,7 +144,10 @@ export default function ReservationScreen({ navigation }) {
             {timeSlots.map((slot) => (
               <TouchableOpacity
                 key={slot}
-                onPress={() => setTime(slot)}
+                onPress={() => {
+                  setTime(slot);
+                  setFeedback(null);
+                }}
                 accessibilityRole="radio"
                 accessibilityState={{ selected: time === slot }}
                 style={[
@@ -90,7 +166,10 @@ export default function ReservationScreen({ navigation }) {
             <TouchableOpacity
               accessibilityLabel="Remove one guest"
               style={[styles.guestButton, { backgroundColor: theme.panelAlt }]}
-              onPress={() => setGuests((count) => Math.max(1, count - 1))}
+              onPress={() => {
+                setGuests((count) => Math.max(1, count - 1));
+                setFeedback(null);
+              }}
               accessibilityRole="button"
             >
               <Text style={[styles.guestButtonText, { color: theme.text }]}>-</Text>
@@ -99,15 +178,18 @@ export default function ReservationScreen({ navigation }) {
             <TouchableOpacity
               accessibilityLabel="Add one guest"
               style={[styles.guestButton, { backgroundColor: theme.panelAlt }]}
-              onPress={() => setGuests((count) => Math.min(12, count + 1))}
+              onPress={() => {
+                setGuests((count) => Math.min(12, count + 1));
+                setFeedback(null);
+              }}
               accessibilityRole="button"
             >
               <Text style={[styles.guestButtonText, { color: theme.text }]}>+</Text>
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={[styles.bookButton, { backgroundColor: theme.accent }]} onPress={bookTable}>
-            <Text style={styles.bookButtonText}>Confirm Reservation</Text>
+          <TouchableOpacity style={[styles.bookButton, { backgroundColor: theme.accent, opacity: isSubmitting ? 0.7 : 1 }]} onPress={bookTable} disabled={isSubmitting}>
+            <Text style={styles.bookButtonText}>{isSubmitting ? "Booking..." : "Confirm Reservation"}</Text>
           </TouchableOpacity>
         </View>
 
@@ -126,7 +208,7 @@ export default function ReservationScreen({ navigation }) {
                   {reservation.date} at {reservation.time} · {reservation.guests} guests
                 </Text>
               </View>
-              <TouchableOpacity onPress={() => cancelReservation(reservation.id)}>
+              <TouchableOpacity onPress={() => handleCancelReservation(reservation.id)}>
                 <Text style={[styles.cancelText, { color: theme.danger }]}>Cancel</Text>
               </TouchableOpacity>
             </View>
@@ -143,6 +225,9 @@ const styles = StyleSheet.create({
   content: { padding: 18, paddingBottom: 28 },
   title: { fontSize: 28, fontWeight: "bold" },
   subtitle: { marginTop: 4, marginBottom: 18 },
+  feedback: { borderWidth: 1, borderRadius: 8, padding: 12, marginBottom: 16 },
+  feedbackTitle: { fontWeight: "800", marginBottom: 4 },
+  feedbackMessage: { fontSize: 13, lineHeight: 19 },
   form: { padding: 16, borderRadius: 12, borderWidth: 1, marginBottom: 24 },
   label: { fontWeight: "700", marginBottom: 8, marginTop: 12 },
   input: { borderWidth: 1, borderRadius: 8, padding: 12 },

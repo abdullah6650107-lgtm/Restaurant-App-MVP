@@ -1,24 +1,29 @@
-import React from "react";
+import React, { useCallback } from "react";
+import { useFocusEffect } from "expo-router";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { useCart } from "../context/CartContext";
 
 const statusSteps = ["Confirmed", "Preparing", "On the Way", "Delivered"];
 
 export default function OrderTrackingScreen({ route, navigation }) {
-  const { orderHistory, theme } = useCart();
+  const { orderHistory, theme, token, loadAccountData } = useCart();
+  useFocusEffect(useCallback(() => {
+    if (token) loadAccountData(token).catch(() => {});
+  }, [loadAccountData, token]));
   const routeOrder = route.params?.order;
   const order = orderHistory.find((item) => item.id === routeOrder?.id) || routeOrder;
   const currentStatus = order?.status || "Confirmed";
+  const isCancelled = currentStatus === "Cancelled";
   const statusIndex = statusSteps.indexOf(currentStatus);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}> 
-      <Text style={[styles.eyebrow, { color: theme.accent }]}>LIVE ORDER UPDATE</Text>
-      <Text style={[styles.title, { color: theme.text }]}>On its way to you</Text>
+      <Text style={[styles.eyebrow, { color: theme.accent }]}>ORDER UPDATE</Text>
+      <Text style={[styles.title, { color: theme.text }]}>{isCancelled ? "This order was cancelled" : currentStatus === "Delivered" ? "Order delivered" : "Your order status"}</Text>
 
       <View style={[styles.summaryCard, { backgroundColor: theme.panel, borderColor: theme.border }]}>
         <Text style={[styles.summaryLabel, { color: theme.textMuted }]}>Current status</Text>
-        <Text style={[styles.summaryValue, { color: theme.accent }]}>{currentStatus}</Text>
+        <Text style={[styles.summaryValue, { color: isCancelled ? theme.danger : theme.accent }]}>{currentStatus}</Text>
         <Text style={[styles.summaryMeta, { color: theme.textMuted }]}>Order #{order?.id || "--"}</Text>
         <Text style={[styles.summaryMeta, { color: theme.textMuted }]}>Total: Rs {order?.total || 0}</Text>
         <Text style={[styles.summaryMeta, { color: theme.textMuted }]}>{order?.items?.length || 0} dishes</Text>
@@ -26,7 +31,7 @@ export default function OrderTrackingScreen({ route, navigation }) {
 
       <View style={styles.timeline}>
         {statusSteps.map((step, index) => {
-          const isDone = index <= statusIndex;
+          const isDone = !isCancelled && index <= statusIndex;
 
           return (
             <View
@@ -51,7 +56,7 @@ export default function OrderTrackingScreen({ route, navigation }) {
               <View style={styles.stepTextWrap}>
                 <Text style={[styles.stepTitle, { color: theme.text }]}>{step}</Text>
                 <Text style={[styles.stepHint, { color: theme.textMuted }]}>
-                  {index === statusIndex ? "In progress" : isDone ? "Completed" : "Pending"}
+                  {isCancelled ? "Order cancelled" : index === statusIndex ? "In progress" : isDone ? "Completed" : "Pending"}
                 </Text>
               </View>
             </View>

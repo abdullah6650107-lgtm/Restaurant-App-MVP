@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useCallback } from "react";
+import { useFocusEffect } from "expo-router";
 import {
   View,
   Text,
@@ -12,7 +13,11 @@ import { useCart } from "../context/CartContext";
 import BottomNav from "../components/BottomNav";
 
 export default function OrdersScreen({ navigation }) {
-  const { orderHistory, theme } = useCart();
+  const { orderHistory, theme, token, loadAccountData } = useCart();
+
+  useFocusEffect(useCallback(() => {
+    if (token) loadAccountData(token).catch(() => {});
+  }, [loadAccountData, token]));
 
   const statusColor = {
     Confirmed: theme.accent,
@@ -61,9 +66,14 @@ export default function OrdersScreen({ navigation }) {
             ]}
           >
             <View style={styles.orderTopRow}>
-              <Text style={[styles.orderTitle, { color: theme.text }]}>
-                Order #{item.id}
-              </Text>
+            <Text
+              style={[styles.orderTitle, { color: theme.text }]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              accessibilityLabel={`Order number ${item.id}`}
+            >
+              Order #{item.id.length > 12 ? `${item.id.slice(0, 8)}…` : item.id}
+            </Text>
 
               <View
                 style={[
@@ -145,8 +155,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   orderTitle: {
+    flex: 1,
+    minWidth: 0,
     fontSize: 18,
     fontWeight: "800",
+    marginRight: 8,
   },
   meta: {
     marginBottom: 4,
@@ -193,6 +206,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   statusBadge: {
+    flexShrink: 0,
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 6,

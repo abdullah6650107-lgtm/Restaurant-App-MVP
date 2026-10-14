@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React from "react";
 import {
+  ActivityIndicator,
   View,
   Text,
   StyleSheet,
@@ -8,41 +9,54 @@ import {
   TouchableOpacity,
   TextInput,
   SafeAreaView,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-import menu from "../data/menu";
 import { useCart } from "../context/CartContext";
 import BottomNav from "../components/BottomNav";
+import { useMenu } from "../hooks/useMenu";
 
 export default function MenuScreen({ navigation }) {
-  const [selectedCategory, setSelectedCategory] = useState("All");
-  const [searchText, setSearchText] = useState("");
-  const { addItem, totalItems, theme } = useCart();
-
-  const categories = ["All", "Burgers", "Pizza", "Sides", "Desserts", "Drinks"];
-
-  const filteredMenu = useMemo(() => {
-    return menu.filter((item) => {
-      const categoryMatch =
-        selectedCategory === "All" || item.category === selectedCategory;
-
-      const searchMatch = item.name
-        .toLowerCase()
-        .includes(searchText.toLowerCase());
-
-      return categoryMatch && searchMatch;
-    });
-  }, [selectedCategory, searchText]);
+  const { addItem, favorites, toggleFavorite, totalItems, theme } = useCart();
+  const {
+    selectedCategory,
+    setSelectedCategory,
+    searchText,
+    setSearchText,
+    menuError,
+    menuLoading,
+    categories,
+    filteredMenu,
+    loadMenu,
+  } = useMenu(favorites);
 
   const renderItem = ({ item }) => (
     <View style={[styles.card, { backgroundColor: theme.panel, borderColor: theme.border }]}>
-      <Image source={{ uri: item.image }} style={styles.image} />
+      <View style={styles.imageWrap}>
+        <Image source={{ uri: item.image }} style={styles.image} resizeMode="cover" />
+        <TouchableOpacity
+          style={[styles.favoriteButton, { backgroundColor: theme.panel }]}
+          onPress={() => toggleFavorite(item.id)}
+          accessibilityRole="button"
+          accessibilityState={{ selected: favorites.includes(item.id) }}
+          accessibilityLabel={`${favorites.includes(item.id) ? "Remove" : "Add"} ${item.name} ${favorites.includes(item.id) ? "from" : "to"} favorites`}
+          hitSlop={8}
+        >
+          <Ionicons
+            name={favorites.includes(item.id) ? "heart" : "heart-outline"}
+            size={19}
+            color={favorites.includes(item.id) ? theme.accent : theme.textMuted}
+          />
+        </TouchableOpacity>
+      </View>
 
       <View style={styles.info}>
-        <Text style={[styles.name, { color: theme.text }]}>{item.name}</Text>
+        <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
+          {item.name}
+        </Text>
         <Text style={[styles.category, { color: theme.textMuted }]}>{item.category}</Text>
-        <Text style={[styles.price, { color: theme.text }]}>Rs {item.price}</Text>
+        <Text style={[styles.price, { color: theme.text }]}>Rs. {item.price}</Text>
 
         <View style={styles.actionRow}>
           <TouchableOpacity
@@ -72,7 +86,10 @@ export default function MenuScreen({ navigation }) {
         <View style={styles.headerRow}>
           <View>
             <Text style={[styles.eyebrow, { color: theme.accent }]}>BITE & BLISS  ·  FRESH DAILY</Text>
-            <Text style={[styles.title, { color: theme.text }]}>What sounds good?</Text>
+            <Text style={[styles.title, { color: theme.text }]}>What are you craving?</Text>
+            <Text style={[styles.subtitle, { color: theme.textMuted }]}>
+              Made fresh, just the way you like it.
+            </Text>
           </View>
 
           <TouchableOpacity
@@ -106,7 +123,7 @@ export default function MenuScreen({ navigation }) {
           <Ionicons name="search-outline" size={19} color={theme.textMuted} />
           <TextInput
             style={[styles.search, { color: theme.text }]}
-            placeholder="Search the menu"
+            placeholder="Search dishes or categories"
             placeholderTextColor={theme.textMuted}
             value={searchText}
             onChangeText={setSearchText}
@@ -120,32 +137,33 @@ export default function MenuScreen({ navigation }) {
           )}
         </View>
 
-        <FlatList
+        <ScrollView
           horizontal
-          data={categories}
-          keyExtractor={(item) => item}
+          style={styles.categoryList}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categories}
-          renderItem={({ item }) => (
+        >
+          {categories.map((item) => (
             <TouchableOpacity
+              key={item.key}
               style={[
                 styles.categoryButton,
                 { backgroundColor: theme.panel, borderColor: theme.border },
-                selectedCategory === item && { backgroundColor: theme.accentSoft, borderColor: theme.accent },
+                selectedCategory === item.key && { backgroundColor: theme.accentSoft, borderColor: theme.accent },
               ]}
-              onPress={() => setSelectedCategory(item)}
+              onPress={() => setSelectedCategory(item.key)}
             >
               <Text
                 style={[
                   styles.categoryText,
-                  { color: selectedCategory === item ? theme.accent : theme.textMuted },
+                  { color: selectedCategory === item.key ? theme.accent : theme.textMuted },
                 ]}
               >
-                {item}
+                {item.label}
               </Text>
             </TouchableOpacity>
-          )}
-        />
+          ))}
+        </ScrollView>
 
         <FlatList
           data={filteredMenu}
@@ -155,7 +173,13 @@ export default function MenuScreen({ navigation }) {
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={(
             <View style={styles.listHeading}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Popular picks</Text>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>
+                {selectedCategory === "favorites"
+                  ? "Your favorites"
+                  : selectedCategory === "all"
+                    ? "Popular picks"
+                    : categories.find((category) => category.key === selectedCategory)?.label}
+              </Text>
               <Text style={[styles.resultCount, { color: theme.textMuted }]}>
                 {filteredMenu.length} {filteredMenu.length === 1 ? "item" : "items"}
               </Text>
@@ -163,9 +187,52 @@ export default function MenuScreen({ navigation }) {
           )}
           ListEmptyComponent={(
             <View style={styles.emptyState}>
-              <Ionicons name="search-outline" size={28} color={theme.textMuted} />
-              <Text style={[styles.emptyTitle, { color: theme.text }]}>No dishes found</Text>
-              <Text style={[styles.emptyText, { color: theme.textMuted }]}>Try another name or category.</Text>
+              {menuLoading ? (
+                <ActivityIndicator size="large" color={theme.accent} />
+              ) : (
+                <Ionicons
+                  name={menuError ? "cloud-offline-outline" : selectedCategory === "favorites" ? "heart-outline" : "search-outline"}
+                  size={30}
+                  color={theme.textMuted}
+                />
+              )}
+              <Text style={[styles.emptyTitle, { color: theme.text }]}>
+                {menuLoading
+                  ? "Fresh flavors are on the way"
+                  : menuError
+                    ? "Menu unavailable"
+                    : selectedCategory === "favorites"
+                      ? "No favorites yet"
+                      : "No dishes found"}
+              </Text>
+              <Text style={[styles.emptyText, { color: theme.textMuted }]}>
+                {menuLoading
+                  ? "Loading today's menu…"
+                  : menuError || (selectedCategory === "favorites"
+                    ? "Tap the heart on a dish to save it here."
+                    : "Try another name or category.")}
+              </Text>
+              {!!menuError && !menuLoading && (
+                <TouchableOpacity
+                  style={[styles.retryButton, { backgroundColor: theme.accent }]}
+                  onPress={loadMenu}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.retryText}>Try again</Text>
+                </TouchableOpacity>
+              )}
+              {!menuLoading && !menuError && filteredMenu.length === 0 && (
+                <TouchableOpacity
+                  style={[styles.retryButton, { backgroundColor: theme.accent }]}
+                  onPress={() => {
+                    setSearchText("");
+                    setSelectedCategory("all");
+                  }}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.retryText}>Browse all dishes</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
         />
@@ -201,6 +268,10 @@ const styles = StyleSheet.create({
     fontSize: 25,
     fontWeight: "800",
   },
+  subtitle: {
+    marginTop: 4,
+    fontSize: 12,
+  },
   cartButton: {
     width: 48,
     height: 44,
@@ -229,9 +300,15 @@ const styles = StyleSheet.create({
     minHeight: 46,
     paddingVertical: 8,
   },
+  categoryList: {
+    flexGrow: 0,
+    flexShrink: 0,
+    height: 58,
+  },
   categories: {
     paddingVertical: 10,
     paddingRight: 2,
+    alignItems: "center",
   },
   categoryButton: {
     paddingHorizontal: 14,
@@ -239,7 +316,7 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     marginRight: 8,
     borderWidth: 1,
-    minHeight: 38,
+    height: 38,
     justifyContent: "center",
   },
   categoryText: {
@@ -266,19 +343,37 @@ const styles = StyleSheet.create({
   },
   card: {
     flexDirection: "row",
+    alignItems: "flex-start",
     borderWidth: 1,
-    borderRadius: 9,
+    borderRadius: 14,
     marginTop: 12,
     overflow: "hidden",
-    minHeight: 132,
+    minHeight: 144,
+  },
+  imageWrap: {
+    width: 116,
+    height: 144,
+    minHeight: 144,
+    flexShrink: 0,
+    position: "relative",
   },
   image: {
-    width: 112,
-    minHeight: 132,
+    width: 116,
+    height: 144,
+  },
+  favoriteButton: {
+    position: "absolute",
+    top: 9,
+    right: 9,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
   },
   info: {
     flex: 1,
-    padding: 12,
+    padding: 13,
     justifyContent: "space-between",
   },
   name: {
@@ -350,6 +445,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 44,
+  },
+  retryButton: {
+    minHeight: 42,
+    paddingHorizontal: 18,
+    borderRadius: 10,
+    justifyContent: "center",
+    marginTop: 16,
+  },
+  retryText: {
+    color: "#fff",
+    fontWeight: "800",
+    fontSize: 13,
   },
   emptyTitle: {
     marginTop: 12,

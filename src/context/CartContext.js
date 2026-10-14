@@ -1,168 +1,136 @@
 import React, {
   createContext,
+  useCallback,
   useContext,
   useMemo,
-  useState,
 } from "react";
-import { useColorScheme } from "react-native";
+import { useAuth } from "../hooks/useAuth";
+import { useCartItems } from "../hooks/useCartItems";
+import { useFavorites } from "../hooks/useFavorites";
+import { useOrders } from "../hooks/useOrders";
+import { useReservations } from "../hooks/useReservations";
+import { useTheme } from "../hooks/useTheme";
+import { api } from "../data/api";
 
 const CartContext = createContext();
 
 export function CartProvider({ children }) {
-  const systemTheme = useColorScheme();
-  const [items, setItems] = useState([]);
-  const [orderHistory, setOrderHistory] = useState([]);
-  const [reservations, setReservations] = useState([]);
-  const [darkMode, setDarkMode] = useState(systemTheme === "dark");
-
-  const theme = useMemo(
-    () =>
-      darkMode
-        ? {
-            background: "#121916",
-            panel: "#1B2420",
-            panelAlt: "#25302B",
-            text: "#f8fafc",
-            textMuted: "#B7C2BB",
-            border: "#35423B",
-            input: "#121916",
-            accent: "#E47B5D",
-            accentSoft: "#3B2B27",
-            success: "#69B99A",
-            danger: "#E87878",
-          }
-        : {
-            background: "#F4F5F1",
-            panel: "#ffffff",
-            panelAlt: "#F7F8F5",
-            text: "#202923",
-            textMuted: "#68736C",
-            border: "#DDE3DD",
-            input: "#ffffff",
-            accent: "#C8563F",
-            accentSoft: "#FBEAE6",
-            success: "#2F8064",
-            danger: "#C94747",
-          },
-    [darkMode]
-  );
-
-  const toggleDarkMode = () => setDarkMode((current) => !current);
-
-  const addItem = (product) => {
-    setItems((currentItems) => {
-      const existingItem = currentItems.find((item) => item.id === product.id);
-
-      if (existingItem) {
-        return currentItems.map((item) =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
-      }
-
-      return [
-        ...currentItems,
-        {
-          id: product.id,
-          name: product.name,
-          price: product.price,
-          image: product.image,
-          category: product.category,
-          quantity: 1,
-        },
-      ];
-    });
-  };
-
-  const updateQuantity = (productId, change) => {
-    setItems((currentItems) =>
-      currentItems
-        .map((item) => {
-          if (item.id !== productId) return item;
-
-          const nextQuantity = item.quantity + change;
-          return nextQuantity > 0 ? { ...item, quantity: nextQuantity } : null;
-        })
-        .filter(Boolean)
-    );
-  };
-
-  const removeItem = (productId) => {
-    setItems((currentItems) =>
-      currentItems.filter((item) => item.id !== productId)
-    );
-  };
-
-  const clearCart = () => {
-    setItems([]);
-  };
-
-  const placeOrder = (order) => {
-    const newOrder = {
-      id: Date.now(),
-      status: "Confirmed",
-      ...order,
-      createdAt: new Date().toISOString(),
-    };
-
-    setOrderHistory((current) => [newOrder, ...current]);
-  };
-
-  const updateOrderStatus = (orderId, status) => {
-    setOrderHistory((current) =>
-      current.map((order) =>
-        order.id === orderId ? { ...order, status } : order
-      )
-    );
-  };
-
-  const addReservation = (reservation) => {
-    const newReservation = {
-      id: Date.now(),
-      status: "Confirmed",
-      ...reservation,
-      createdAt: new Date().toISOString(),
-    };
-
-    setReservations((current) => [newReservation, ...current]);
-    return newReservation;
-  };
-
-  const cancelReservation = (reservationId) => {
-    setReservations((current) =>
-      current.filter((reservation) => reservation.id !== reservationId)
-    );
-  };
-
-  const totalItems = useMemo(
-    () => items.reduce((sum, item) => sum + item.quantity, 0),
-    [items]
-  );
-
-  const subtotal = useMemo(
-    () => items.reduce((sum, item) => sum + item.price * item.quantity, 0),
-    [items]
-  );
-
-  const value = {
-    items,
+  const cart = useCartItems();
+  const favorites = useFavorites();
+  const appearance = useTheme();
+  const orders = useOrders();
+  const reservations = useReservations();
+  const { clearCart } = cart;
+  const { setFavorites } = favorites;
+  const {
     orderHistory,
-    reservations,
-    darkMode,
-    theme,
-    toggleDarkMode,
-    addItem,
-    updateQuantity,
-    removeItem,
-    clearCart,
-    placeOrder,
-    updateOrderStatus,
-    addReservation,
-    cancelReservation,
-    totalItems,
-    subtotal,
-  };
+    setOrderHistory,
+    placeOrder: createOrder,
+    updateOrderStatus: changeOrderStatus,
+  } = orders;
+  const {
+    reservations: reservationHistory,
+    setReservations,
+    addReservation: createReservation,
+    cancelReservation: removeReservation,
+  } = reservations;
+
+  const clearAccountData = useCallback(() => {
+    setOrderHistory([]);
+    setReservations([]);
+  }, [setOrderHistory, setReservations]);
+
+  const clearShoppingData = useCallback(() => {
+    clearCart();
+    setFavorites([]);
+  }, [clearCart, setFavorites]);
+
+  const loadAccountData = useCallback(async (sessionToken) => {
+    const [ordersResponse, reservationsResponse] = await Promise.all([
+      api.getOrders(sessionToken),
+      api.getReservations(sessionToken),
+    ]);
+    setOrderHistory(ordersResponse.orders);
+    setReservations(reservationsResponse.reservations);
+  }, [setOrderHistory, setReservations]);
+
+  const auth = useAuth({ loadAccountData, clearAccountData, clearShoppingData });
+
+  const placeOrder = useCallback(
+    (order) => createOrder(order, auth.token),
+    [createOrder, auth.token]
+  );
+  const updateOrderStatus = useCallback(
+    (orderId, status) => changeOrderStatus(orderId, status, auth.token),
+    [changeOrderStatus, auth.token]
+  );
+  const addReservation = useCallback(
+    (reservation) => createReservation(reservation, auth.token),
+    [createReservation, auth.token]
+  );
+  const cancelReservation = useCallback(
+    (reservationId) => removeReservation(reservationId, auth.token),
+    [removeReservation, auth.token]
+  );
+
+  const value = useMemo(
+    () => ({
+      items: cart.items,
+      favorites: favorites.favorites,
+      orderHistory,
+      reservations: reservationHistory,
+      token: auth.token,
+      user: auth.user,
+      authReady: auth.authReady,
+      darkMode: appearance.darkMode,
+      theme: appearance.theme,
+      toggleDarkMode: appearance.toggleDarkMode,
+      addItem: cart.addItem,
+      toggleFavorite: favorites.toggleFavorite,
+      updateQuantity: cart.updateQuantity,
+      removeItem: cart.removeItem,
+      clearCart: cart.clearCart,
+      placeOrder,
+      updateOrderStatus,
+      addReservation,
+      cancelReservation,
+      signIn: auth.signIn,
+      signUp: auth.signUp,
+      signOut: auth.signOut,
+      loadAccountData,
+      sessionError: auth.sessionError,
+      totalItems: cart.totalItems,
+      subtotal: cart.subtotal,
+    }),
+    [
+      cart.items,
+      cart.addItem,
+      cart.updateQuantity,
+      cart.removeItem,
+      cart.clearCart,
+      cart.totalItems,
+      cart.subtotal,
+      favorites.favorites,
+      favorites.toggleFavorite,
+      orderHistory,
+      reservationHistory,
+      auth.token,
+      auth.user,
+      auth.authReady,
+      auth.signIn,
+      auth.signUp,
+      auth.signOut,
+      auth.sessionError,
+      appearance.darkMode,
+      appearance.theme,
+      appearance.toggleDarkMode,
+      placeOrder,
+      updateOrderStatus,
+      addReservation,
+      cancelReservation,
+      loadAccountData,
+    ]
+  );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

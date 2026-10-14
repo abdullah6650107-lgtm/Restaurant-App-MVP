@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -6,82 +6,149 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  Alert,
 } from "react-native";
 
-import menuData from "../data/menu";
-import usersData from "../data/users";
 import { useCart } from "../context/CartContext";
+import { api } from "../data/api";
+import { useUsers } from "../data/users";
 
-const initialProducts = menuData.map((item) => ({ ...item }));
-const initialAccounts = usersData.map((user) => ({ ...user }));
+const statusSteps = ["Confirmed", "Preparing", "On the Way", "Delivered", "Cancelled"];
 
-const defaultOrders = [
-  { id: "ORD-101", customer: "Abdullah", status: "Preparing", items: 3 },
-  { id: "ORD-102", customer: "Ayesha", status: "On the Way", items: 2 },
-  { id: "ORD-103", customer: "Ali", status: "Pending", items: 4 },
-  { id: "ORD-104", customer: "Zara", status: "Delivered", items: 1 },
-];
-
-const statusSteps = ["Pending", "Preparing", "On the Way", "Delivered"];
-
-export default function DashboardScreen() {
-  const { theme, darkMode, toggleDarkMode } = useCart();
-  const [products, setProducts] = useState(initialProducts);
-  const [accounts, setAccounts] = useState(initialAccounts);
-  const [orders, setOrders] = useState(defaultOrders);
+export default function DashboardScreen({ navigation }) {
+  const { theme, darkMode, toggleDarkMode, token } = useCart();
+  const [products, setProducts] = useState([]);
+  const [productNotification, setProductNotification] = useState("");
+  const {
+    users,
+    loading: usersLoading,
+    error: usersError,
+    deleteUser,
+  } = useUsers(token);
+  const [orders, setOrders] = useState([]);
+  const [summary, setSummary] = useState({
+    revenue: 0,
+    pendingOrders: 0,
+    averageRating: null,
+  });
   const [newProduct, setNewProduct] = useState({
     name: "",
-    category: "Burgers",
+    category: "",
     price: "",
+    image: "",
   });
-
-  const revenue = useMemo(
-    () => products.reduce((sum, product) => sum + Number(product.price), 0),
+  const categoryOptions = useMemo(
+    () => [...new Set(products.map((product) => product.category?.trim()).filter(Boolean))],
     [products]
   );
+  const selectedCategory = categoryOptions.includes(newProduct.category)
+    ? newProduct.category
+    : categoryOptions[0] || "";
 
-  const pendingOrders = useMemo(
-    () => orders.filter((order) => order.status !== "Delivered").length,
-    [orders]
-  );
+  useEffect(() => {
+    if (!productNotification) return undefined;
+    const timeout = setTimeout(() => setProductNotification(""), 3000);
+    return () => clearTimeout(timeout);
+  }, [productNotification]);
 
-  const addProduct = () => {
-    if (!newProduct.name.trim() || !newProduct.price) return;
-
-    const product = {
-      id: `${products.length + 1}`,
-      name: newProduct.name.trim(),
-      category: newProduct.category,
-      price: Number(newProduct.price),
-      image: "https://images.unsplash.com/photo-1544025162-d76694265947",
+  useEffect(() => {
+    if (!token) return undefined;
+    let active = true;
+    Promise.all([
+      api.getMenu(),
+      api.getOrders(token),
+      api.getDashboard(token),
+    ])
+      .then(([menuResponse, ordersResponse, dashboard]) => {
+        if (!active) return;
+        setProducts(menuResponse.items);
+        setOrders(ordersResponse.orders);
+        setSummary(dashboard);
+      })
+      .catch((error) => {
+        if (active) Alert.alert("Dashboard Unavailable", error.message);
+      });
+    return () => {
+      active = false;
     };
+  }, [token]);
 
-    setProducts((current) => [product, ...current]);
-    setNewProduct({ name: "", category: "Burgers", price: "" });
+  useEffect(() => {
+    if (token && usersError) Alert.alert("Accounts Unavailable", usersError);
+  }, [token, usersError]);
+
+  const addProduct = async () => {
+    if (!newProduct.name.trim() || !newProduct.price) return;
+    if (!categoryOptions.includes(selectedCategory)) {
+      Alert.alert("Select a Category", "Choose one of the existing product categories.");
+      return;
+    }
+
+    try {
+      const { item } = await api.createMenuItem({
+        name: newProduct.name.trim(),
+        category: selectedCategory,
+        price: Number(newProduct.price),
+        image: newProduct.image.trim(),
+      }, token);
+      setProducts((current) => [item, ...current]);
+      setProductNotification("Product added successfully");
+      setNewProduct({
+        name: "",
+        category: selectedCategory,
+        price: "",
+        image: "",
+      });
+    } catch (error) {
+      Alert.alert("Could Not Add Product", error.message);
+    }
   };
 
-  const removeProduct = (productId) => {
-    setProducts((current) => current.filter((item) => item.id !== productId));
+  const removeProduct = async (productId) => {
+    try {
+      await api.deleteMenuItem(productId, token);
+      setProducts((current) => current.filter((item) => item.id !== productId));
+    } catch (error) {
+      Alert.alert("Could Not Remove Product", error.message);
+    }
   };
 
-  const updatePrice = (productId, value) => {
-    setProducts((current) =>
-      current.map((item) =>
-        item.id === productId ? { ...item, price: Number(value) } : item
-      )
-    );
+  const updatePrice = async (productId, value) => {
+    const price = Number(value);
+    if (!Number.isFinite(price) || price <= 0) {
+      setProducts((current) => current.map(({ priceDraft, ...item }) => item));
+      return;
+    }
+    try {
+      const { item: updatedItem } = await api.updateMenuItem(productId, { price }, token);
+      setProducts((current) =>
+        current.map((item) => item.id === productId ? updatedItem : item)
+      );
+    } catch (error) {
+      setProducts((current) => current.map(({ priceDraft, ...item }) => item));
+      Alert.alert("Could Not Update Price", error.message);
+    }
   };
 
-  const removeAccount = (accountId) => {
-    setAccounts((current) => current.filter((user) => user.id !== accountId));
+  const removeAccount = async (accountId) => {
+    try {
+      await deleteUser(accountId);
+    } catch (error) {
+      Alert.alert("Could Not Delete Account", error.message);
+    }
   };
 
-  const updateOrderStatus = (orderId, nextStatus) => {
-    setOrders((current) =>
-      current.map((order) =>
-        order.id === orderId ? { ...order, status: nextStatus } : order
-      )
-    );
+  const updateOrderStatus = async (orderId, nextStatus) => {
+    try {
+      const { order: updatedOrder } = await api.updateOrderStatus(orderId, nextStatus, token);
+      setOrders((current) =>
+        current.map((order) => order.id === orderId ? updatedOrder : order)
+      );
+      const dashboard = await api.getDashboard(token);
+      setSummary(dashboard);
+    } catch (error) {
+      Alert.alert("Could Not Update Order", error.message);
+    }
   };
 
   return (
@@ -92,21 +159,44 @@ export default function DashboardScreen() {
       <View style={styles.topBar}>
         <Text style={[styles.title, { color: theme.text }]}>Manager Dashboard</Text>
 
-        <TouchableOpacity
-          style={[styles.toggleButton, { backgroundColor: theme.panel, borderColor: theme.border }]}
-          onPress={toggleDarkMode}
-        >
-          <Text style={[styles.toggleText, { color: theme.text }]}>
-            {darkMode ? "Light" : "Dark"}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.topActions}>
+          <TouchableOpacity
+            style={[styles.accountButton, { backgroundColor: theme.panel, borderColor: theme.border }]}
+            onPress={() => navigation.navigate("Profile")}
+            accessibilityRole="button"
+          >
+            <Text style={[styles.toggleText, { color: theme.text }]}>Account</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.toggleButton, { backgroundColor: theme.panel, borderColor: theme.border }]}
+            onPress={toggleDarkMode}
+          >
+            <Text style={[styles.toggleText, { color: theme.text }]}>
+              {darkMode ? "Light" : "Dark"}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
+
+      {productNotification ? (
+        <View
+          accessibilityRole="alert"
+          style={[
+            styles.successNotification,
+            { backgroundColor: theme.panel, borderColor: theme.success },
+          ]}
+        >
+          <Text style={[styles.successNotificationText, { color: theme.success }]}>
+            {productNotification}
+          </Text>
+        </View>
+      ) : null}
 
       <View style={[styles.hero, { backgroundColor: theme.panel, borderColor: theme.border }]}>
         <Text style={[styles.heroLabel, { color: theme.textMuted }]}>Operational Summary</Text>
         <Text style={[styles.heroTitle, { color: theme.text }]}>Restaurant is running smoothly</Text>
         <Text style={[styles.heroMeta, { color: theme.textMuted }]}>
-          {pendingOrders} orders awaiting completion
+          {summary.pendingOrders} orders awaiting completion
         </Text>
       </View>
 
@@ -118,17 +208,19 @@ export default function DashboardScreen() {
 
         <View style={[styles.statCard, { backgroundColor: theme.panel, borderColor: theme.border }]}>
           <Text style={[styles.statLabel, { color: theme.textMuted }]}>Revenue</Text>
-          <Text style={[styles.statValue, { color: theme.text }]}>Rs. {revenue}</Text>
+          <Text style={[styles.statValue, { color: theme.text }]}>Rs. {summary.revenue}</Text>
         </View>
 
         <View style={[styles.statCard, { backgroundColor: theme.panel, borderColor: theme.border }]}>
           <Text style={[styles.statLabel, { color: theme.textMuted }]}>Accounts</Text>
-          <Text style={[styles.statValue, { color: theme.text }]}>{accounts.length}</Text>
+          <Text style={[styles.statValue, { color: theme.text }]}>
+            {usersLoading ? "..." : users.length}
+          </Text>
         </View>
 
         <View style={[styles.statCard, { backgroundColor: theme.panel, borderColor: theme.border }]}>
           <Text style={[styles.statLabel, { color: theme.textMuted }]}>Rating</Text>
-          <Text style={[styles.statValue, { color: theme.text }]}>4.8/5</Text>
+          <Text style={[styles.statValue, { color: theme.text }]}>{summary.averageRating ?? "--"}/5</Text>
         </View>
       </View>
 
@@ -143,28 +235,64 @@ export default function DashboardScreen() {
           style={[styles.input, { backgroundColor: theme.input, borderColor: theme.border, color: theme.text }]}
         />
 
-        <View style={styles.inlineRow}>
-          <TextInput
-            value={newProduct.category}
-            onChangeText={(text) => setNewProduct((current) => ({ ...current, category: text }))}
-            placeholder="Category"
-            placeholderTextColor={theme.textMuted}
-            style={[styles.inputHalf, { backgroundColor: theme.input, borderColor: theme.border, color: theme.text }]}
-          />
+        <Text style={[styles.fieldLabel, { color: theme.text }]}>Select category</Text>
+        {categoryOptions.length ? (
+          <View style={styles.categoryOptions}>
+            {categoryOptions.map((category) => {
+              const selected = selectedCategory === category;
+              return (
+                <TouchableOpacity
+                  key={category}
+                  style={[
+                    styles.categoryOption,
+                    {
+                      backgroundColor: selected ? theme.accentSoft : theme.input,
+                      borderColor: selected ? theme.accent : theme.border,
+                    },
+                  ]}
+                  onPress={() => setNewProduct((current) => ({ ...current, category }))}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected }}
+                >
+                  <Text style={[styles.categoryOptionText, { color: selected ? theme.accent : theme.text }]}>
+                    {category}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ) : (
+          <Text style={[styles.categoryHint, { color: theme.textMuted }]}>
+            No existing categories are available yet.
+          </Text>
+        )}
 
+        <View style={styles.inlineRow}>
           <TextInput
             value={newProduct.price}
             onChangeText={(text) => setNewProduct((current) => ({ ...current, price: text }))}
             keyboardType="numeric"
             placeholder="Price"
             placeholderTextColor={theme.textMuted}
-            style={[styles.inputHalf, { backgroundColor: theme.input, borderColor: theme.border, color: theme.text }]}
+            style={[styles.input, { flex: 1, backgroundColor: theme.input, borderColor: theme.border, color: theme.text }]}
           />
         </View>
 
+        <TextInput
+          value={newProduct.image}
+          onChangeText={(text) => setNewProduct((current) => ({ ...current, image: text }))}
+          keyboardType="url"
+          autoCapitalize="none"
+          autoCorrect={false}
+          placeholder="Image URL (optional)"
+          placeholderTextColor={theme.textMuted}
+          style={[styles.input, { backgroundColor: theme.input, borderColor: theme.border, color: theme.text }]}
+        />
+
         <TouchableOpacity
-          style={[styles.primaryButton, { backgroundColor: theme.accent }]}
+          style={[styles.primaryButton, { backgroundColor: theme.accent, opacity: categoryOptions.length ? 1 : 0.6 }]}
           onPress={addProduct}
+          disabled={!categoryOptions.length}
         >
           <Text style={styles.primaryButtonText}>Add Product</Text>
         </TouchableOpacity>
@@ -182,8 +310,15 @@ export default function DashboardScreen() {
 
             <View style={styles.priceBox}>
               <TextInput
-                value={String(item.price)}
-                onChangeText={(text) => updatePrice(item.id, text)}
+                value={item.priceDraft ?? String(item.price)}
+                onChangeText={(text) => setProducts((current) =>
+                  current.map((product) => product.id === item.id
+                    ? { ...product, priceDraft: text }
+                    : product)
+                )}
+                onEndEditing={(event) => {
+                  void updatePrice(item.id, event.nativeEvent.text);
+                }}
                 keyboardType="numeric"
                 style={[styles.priceInput, { color: theme.text, backgroundColor: theme.input, borderColor: theme.border }]}
               />
@@ -199,7 +334,7 @@ export default function DashboardScreen() {
       <View style={[styles.card, { backgroundColor: theme.panel, borderColor: theme.border }]}>
         <Text style={[styles.cardTitle, { color: theme.text }]}>Registered Accounts</Text>
 
-        {accounts.map((user) => (
+        {users.map((user) => (
           <View key={user.id} style={[styles.listItem, { backgroundColor: theme.panelAlt, borderColor: theme.border }]}>
             <View style={styles.itemInfo}>
               <Text style={[styles.itemName, { color: theme.text }]}>{user.name}</Text>
@@ -210,9 +345,11 @@ export default function DashboardScreen() {
               {user.role}
             </Text>
 
-            <TouchableOpacity onPress={() => removeAccount(user.id)}>
-              <Text style={styles.removeText}>Delete</Text>
-            </TouchableOpacity>
+            {user.role === "customer" ? (
+              <TouchableOpacity onPress={() => removeAccount(user.id)}>
+                <Text style={styles.removeText}>Delete</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
         ))}
       </View>
@@ -223,11 +360,24 @@ export default function DashboardScreen() {
         {orders.map((order) => (
           <View key={order.id} style={[styles.orderCard, { backgroundColor: theme.panelAlt, borderColor: theme.border }]}>
             <View style={styles.orderHeader}>
-              <Text style={[styles.orderId, { color: theme.text }]}>{order.id}</Text>
-              <Text style={[styles.orderCustomer, { color: theme.textMuted }]}>{order.customer}</Text>
+              <Text
+                style={[styles.orderId, { color: theme.text }]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                accessibilityLabel={`Order number ${order.id}`}
+              >
+                Order #{order.id.length > 12 ? `${order.id.slice(0, 8)}…` : order.id}
+              </Text>
+              <Text
+                style={[styles.orderCustomer, { color: theme.textMuted }]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {order.customerName}
+              </Text>
             </View>
 
-            <Text style={[styles.orderText, { color: theme.textMuted }]}>{order.items} items</Text>
+            <Text style={[styles.orderText, { color: theme.textMuted }]}>{order.items?.reduce((count, item) => count + item.quantity, 0) || 0} items · Rs. {order.total}</Text>
 
             <View style={styles.statusRow}>
               {statusSteps.map((step) => (
@@ -273,9 +423,31 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 18,
   },
+  successNotification: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 14,
+  },
+  successNotificationText: {
+    fontWeight: "700",
+  },
   title: {
     fontSize: 30,
     fontWeight: "bold",
+  },
+  topActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  accountButton: {
+    minHeight: 40,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
   toggleButton: {
     borderRadius: 8,
@@ -350,6 +522,30 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 12,
   },
+  fieldLabel: {
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  categoryOptions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 12,
+  },
+  categoryOption: {
+    minHeight: 40,
+    justifyContent: "center",
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  categoryOptionText: {
+    fontWeight: "700",
+  },
+  categoryHint: {
+    marginBottom: 12,
+  },
   inputHalf: {
     flex: 1,
     borderRadius: 10,
@@ -412,15 +608,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   orderHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: 4,
   },
   orderId: {
+    maxWidth: "100%",
     fontWeight: "700",
   },
   orderCustomer: {
     fontSize: 12,
+    marginTop: 3,
   },
   orderText: {
     fontSize: 12,

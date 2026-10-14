@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -11,34 +11,35 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 
 import { useCart } from "../context/CartContext";
+import { useCheckout } from "../hooks/useCheckout";
 
 export default function CheckoutScreen({ navigation }) {
-  const { items, subtotal, placeOrder, clearCart, theme } = useCart();
-  const [name, setName] = useState("Customer");
-  const [address, setAddress] = useState("Main Street, Lahore");
-  const [payment, setPayment] = useState("Cash on Delivery");
+  const { items, subtotal, placeOrder, clearCart, theme, user } = useCart();
+  const {
+    name,
+    setName,
+    address,
+    setAddress,
+    isSubmitting,
+    deliveryFee,
+    total,
+    itemCount,
+    submitOrder,
+  } = useCheckout({ items, subtotal, user, placeOrder, clearCart });
 
-  const deliveryFee = useMemo(() => (items.length > 0 ? 120 : 0), [items]);
-  const total = subtotal + deliveryFee;
-  const itemCount = items.reduce((count, item) => count + item.quantity, 0);
-
-  const handlePlaceOrder = () => {
-    if (!items.length) {
-      Alert.alert("Cart Empty", "Add some items before checkout.");
+  const handlePlaceOrder = async () => {
+    const result = await submitOrder();
+    if (result.status === "ignored") return;
+    if (result.status === "invalid") {
+      Alert.alert(result.title, result.message);
       return;
     }
-
-    placeOrder({
-      customerName: name,
-      address,
-      paymentMethod: payment,
-      total,
-      items,
-    });
-
-    Alert.alert("Order Placed", "Your food is being prepared.");
-    clearCart();
-    navigation.navigate("Orders");
+    if (result.status === "success") {
+      Alert.alert("Order Placed", "Your food is being prepared.");
+      navigation.navigate("Orders");
+      return;
+    }
+    Alert.alert("Order Failed", result.message);
   };
 
   return (
@@ -78,34 +79,9 @@ export default function CheckoutScreen({ navigation }) {
         />
 
         <Text style={[styles.label, { color: theme.text }]}>Payment Method</Text>
-        <View style={styles.paymentRow}>
-          {["Cash on Delivery", "Card", "Easypaisa"].map((method) => (
-            <TouchableOpacity
-              key={method}
-              style={[
-                styles.paymentButton,
-                { backgroundColor: theme.panelAlt, borderColor: theme.border },
-                payment === method && { backgroundColor: theme.accent, borderColor: theme.accent },
-              ]}
-              onPress={() => setPayment(method)}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: payment === method }}
-            >
-              <Ionicons
-                name={method === "Cash on Delivery" ? "cash-outline" : method === "Card" ? "card-outline" : "phone-portrait-outline"}
-                size={17}
-                color={payment === method ? "#fff" : theme.textMuted}
-              />
-              <Text
-                style={[
-                  styles.paymentText,
-                  { color: payment === method ? "#fff" : theme.text },
-                ]}
-              >
-                {method}
-              </Text>
-            </TouchableOpacity>
-          ))}
+        <View style={[styles.paymentButton, { backgroundColor: theme.accentSoft, borderColor: theme.accent }]}>
+          <Ionicons name="cash-outline" size={17} color={theme.accent} />
+          <Text style={[styles.paymentText, { color: theme.text }]}>Cash on Delivery</Text>
         </View>
       </View>
 
@@ -135,8 +111,10 @@ export default function CheckoutScreen({ navigation }) {
         </View>
       </View>
 
-      <TouchableOpacity style={[styles.placeButton, { backgroundColor: theme.accent }]} onPress={handlePlaceOrder}>
-        <Text style={styles.placeButtonText}>Place order · Rs {total}</Text>
+      <TouchableOpacity style={[styles.placeButton, { backgroundColor: theme.accent, opacity: isSubmitting ? 0.7 : 1 }]} onPress={handlePlaceOrder} disabled={isSubmitting}>
+        <Text style={styles.placeButtonText} numberOfLines={1}>
+          Place order · Rs {total}
+        </Text>
         <Ionicons name="arrow-forward" size={18} color="#fff" />
       </TouchableOpacity>
     </ScrollView>
@@ -147,7 +125,7 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     padding: 18,
-    paddingBottom: 32,
+    paddingBottom: 56,
   },
   title: {
     fontSize: 26,
@@ -250,16 +228,20 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   placeButton: {
-    minHeight: 52,
+    minHeight: 56,
     borderRadius: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: 12,
   },
   placeButtonText: {
+    flexShrink: 1,
     color: "#fff",
     fontWeight: "800",
     fontSize: 15,
+    textAlign: "center",
   },
 });
