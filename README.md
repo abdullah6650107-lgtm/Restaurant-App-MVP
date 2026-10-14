@@ -175,7 +175,3 @@ App screenshots are included in [`A2/screenshots/Screen Shots.pdf`](A2/screensho
 - Order and dashboard updates use polling rather than push notifications.
 - The backend is available to phones only while the development computer and server are running on a reachable network.
 - In-memory database mode is temporary and loses data when the server stops.
-
-## Viva setup
-
-Before the viva, start MongoDB, run the backend setup above, and leave `npm run dev` running. Start Expo in a second terminal and confirm the root `.env` points to an address reachable from the phone. The seeded customer and manager accounts are listed above.
