@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { api } from "../data/api";
+import { api } from "../api";
 
 export function useReservations() {
   const [reservations, setReservations] = useState([]);

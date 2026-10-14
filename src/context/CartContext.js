@@ -10,7 +10,7 @@ import { useFavorites } from "../hooks/useFavorites";
 import { useOrders } from "../hooks/useOrders";
 import { useReservations } from "../hooks/useReservations";
 import { useTheme } from "../hooks/useTheme";
-import { api } from "../data/api";
+import { api } from "../api";
 
 const CartContext = createContext();
 

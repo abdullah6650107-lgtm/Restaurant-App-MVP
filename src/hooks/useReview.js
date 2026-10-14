@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { api } from "../data/api";
+import { api } from "../api";
 
 export function useReview(token) {
   const [rating, setRating] = useState(5);

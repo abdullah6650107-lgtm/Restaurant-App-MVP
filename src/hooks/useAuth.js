@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { api } from "../data/api";
+import { api } from "../api";
 import {
   clearSessionToken,
   getSessionToken,

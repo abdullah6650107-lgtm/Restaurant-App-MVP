@@ -10,7 +10,7 @@ import {
 } from "react-native";
 
 import { useCart } from "../context/CartContext";
-import { api } from "../data/api";
+import { api } from "../api";
 import { useUsers } from "../data/users";
 
 const statusSteps = ["Confirmed", "Preparing", "On the Way", "Delivered", "Cancelled"];

@@ -1,5 +1,5 @@
 const API_BASE_URL = (
-  process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000"
+  process.env.EXPO_PUBLIC_API_URL || "http://localhost:5000"
 ).replace(/\/+$/, "");
 
 async function request(path, { method = "GET", token, body } = {}) {
@@ -38,7 +38,17 @@ async function request(path, { method = "GET", token, body } = {}) {
     throw error;
   }
 
-  return data;
+  return normalizeIds(data);
+}
+
+function normalizeIds(value) {
+  if (Array.isArray(value)) return value.map(normalizeIds);
+  if (value && typeof value === "object") {
+    const normalized = Object.fromEntries(Object.entries(value).map(([key, child]) => [key, normalizeIds(child)]));
+    if (normalized.id === undefined && normalized._id !== undefined) normalized.id = String(normalized._id);
+    return normalized;
+  }
+  return value;
 }
 
 function itemPath(path, id) {

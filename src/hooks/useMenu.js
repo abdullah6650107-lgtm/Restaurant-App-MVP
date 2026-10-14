@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { api } from "../data/api";
+import { api } from "../api";
 
 export function useMenu(favorites) {
   const [selectedCategory, setSelectedCategory] = useState("all");

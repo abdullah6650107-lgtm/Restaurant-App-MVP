@@ -1,0 +1,11 @@
+erDiagram
+  USER ||--o{ ORDER : places
+  USER ||--o{ RESERVATION : books
+  USER ||--o{ REVIEW : writes
+  TABLE ||--o{ RESERVATION : assigned
+  USER { string name string email string role }
+  MENU_ITEM { string name string category number price boolean is_available }
+  ORDER { ObjectId customer number total string status }
+  RESERVATION { ObjectId customer ObjectId table datetime date string status }
+  REVIEW { ObjectId customer number rating string text }
+  TABLE { number table_number number capacity }

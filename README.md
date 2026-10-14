@@ -1,35 +1,75 @@
-# Restaurant-App
+# Restaurant App
 
-## Mobile app
+Expo/React Native restaurant ordering app with a Node.js, Express, and MongoDB API.
 
-The app uses Expo Router with JavaScript routes in src/app/. Native session tokens are stored with Expo SecureStore; the web app uses browser storage. The cart, favorites, and appearance preference are saved locally between launches.
+## Run the backend
 
-Run npx expo lint to check the JavaScript app.
+Requirements: Node.js LTS and MongoDB (local or Atlas).
 
-## Feature hooks
+    cd server
+    npm install
+    Copy-Item .env.example .env
+    # Edit .env: set MONGO_URI and a private JWT_SECRET
+    npm run seed
+    npm run dev
 
-Reusable feature state and behavior lives in `src/hooks/`, grouped by feature (`useAuth`, `useCartItems`, `useFavorites`, `useMenu`, `useOrders`, `useReservations`, `useCheckout`, `useReview`, and `useTheme`). Screens use these hooks for feature-specific logic, while `src/context/CartContext.js` composes shared app state for screens that consume `useCart()`.
+The API listens on port 5000. Health check: http://localhost:5000/api/health. For MongoDB Atlas set MONGO_URI in server/.env and USE_MEMORY_DB=false. Never commit server/.env, a database password, or a real connection string. Commit only server/.env.example.
 
-## Backend and MongoDB setup
+## Run the mobile app
 
-The app sends API requests to the Node.js backend. The backend connects to MongoDB and stores users, menu items, orders, reservations, and reviews in separate collections. The mobile app must never connect directly to MongoDB; keep the database connection string on the backend only.
+At project root:
 
-1. Copy `Backend/.env.example` to `Backend/.env` and set `MONGODB_URI` to the MongoDB Atlas connection string. The database name defaults to `restaurantapp`.
-2. In Atlas, make sure the cluster is running and your current public IP is allowed under **Network Access**.
-3. Copy `.env.example` to the project-root `.env`. Set `EXPO_PUBLIC_API_URL` to the machine running the backend:
-   - Web: `http://localhost:3000`
-   - Android emulator: `http://10.0.2.2:3000`
-   - iOS simulator: `http://localhost:3000`
-   - Physical device: `http://<computer-LAN-IP>:3000` (both devices must be on the same network, and the firewall must allow port 3000).
-   - Production: use the HTTPS URL of the deployed backend.
-4. In one terminal, run `npm run backend`. The server connects to MongoDB before it begins listening; startup fails with an error if MongoDB is unreachable. You can confirm it is running by opening `http://localhost:3000/health` in a browser.
-5. In another terminal, run `npm start` and reload the app after changing `.env`.
+    Copy-Item .env.example .env
+    npm install
+    npx expo start
 
-Only `EXPO_PUBLIC_API_URL` belongs in the app's public environment. **Never** put `MONGODB_URI`, a database password, or another secret in a root `.env` variable prefixed with `EXPO_PUBLIC_`.
+Change the backend address in root .env under EXPO_PUBLIC_API_URL (default in src/api/index.js). Use http://localhost:5000 for web/iOS simulator, http://10.0.2.2:5000 for Android emulator, and http://<computer-LAN-IP>:5000 for a physical device on the same network. Reload Expo after changing it.
 
-The first startup seeds the demo menu and accounts only when all application collections in the database are empty. If `Backend/data/db.json` exists, its legacy records are imported into MongoDB on that first empty-database startup. Afterward MongoDB is the source of truth; edits made in the app are saved there.
+## Seeded logins
 
-- Customer: `customer@example.com` / `Customer123`
-- Manager: `manager@example.com` / `Manager123`
+- Customer: customer@example.com / Customer123
+- Manager: manager@example.com / Manager123
 
-For MongoDB TLS errors such as `ERR_SSL_TLSV1_ALERT_INTERNAL_ERROR`, do not disable certificate validation. Check Atlas network access, VPN/proxy/firewall interference, and run the backend on a supported Node.js LTS version.
+Demo credentials; change before a public deployment.
+
+## API endpoint table
+
+Base URL: http://localhost:5000. Protected requests need Authorization: Bearer <token>.
+
+| Method | Endpoint | Access | Purpose |
+| --- | --- | --- | --- |
+| GET | /api/health | Public | Health check |
+| POST | /api/auth/register | Public | Register |
+| POST | /api/auth/login | Public | Sign in |
+| POST | /api/auth/logout | Signed in | Sign out |
+| GET | /api/profile | Signed in | Current profile |
+| GET | /api/menu | Public | List menu |
+| GET | /api/menu/:id | Public | Menu item details |
+| POST | /api/menu | Manager | Add menu item |
+| PATCH | /api/menu/:id | Manager | Edit menu item |
+| DELETE | /api/menu/:id | Manager | Delete menu item |
+| GET | /api/orders | Signed in | Customer orders / all manager orders |
+| POST | /api/orders | Signed in | Place order |
+| PATCH | /api/orders/:id/status | Manager | Change order status |
+| GET | /api/reservations/my | Signed in | Customer reservations |
+| GET | /api/reservations | Manager | List reservations |
+| POST | /api/reservations | Signed in | Create reservation |
+| PATCH | /api/reservations/:id | Manager | Accept/decline reservation |
+| DELETE | /api/reservations/:id | Owner/manager | Cancel reservation |
+| POST | /api/reviews | Signed in | Submit review |
+| GET | /api/admin/accounts | Manager | List accounts |
+| DELETE | /api/admin/accounts/:id | Manager | Delete customer |
+| GET | /api/admin/dashboard | Manager | Dashboard summary |
+
+Postman collection: A2/RestaurantApp.postman_collection.json.
+
+## A2 submission
+
+- SRS: A2/SRS_v2.pdf
+- Diagrams: A2/diagrams
+- Screenshots: A2/screenshots (add genuine screenshots before submission; none were available when preparing this folder)
+- Demo video: TODO: add the video URL
+
+## Viva
+
+Start MongoDB, run npm run seed, then keep npm run dev running in server. See the API URL setting and endpoint table above.
