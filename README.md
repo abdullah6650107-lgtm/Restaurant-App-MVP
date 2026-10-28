@@ -88,6 +88,15 @@ For a physical phone, use the computer's current Wi-Fi/LAN IP address, and make 
 
 Scan the Expo QR code with Expo Go. Do not put the MongoDB URI or database password in the root `.env`; those belong only in `server/.env`.
 
+For an installable Android APK using a local HTTP backend, configure `EXPO_PUBLIC_API_URL` in the EAS `preview` environment as well as in the local `.env`. For example, replace `192.168.1.25` with the computer's current Wi-Fi IPv4 address and run:
+
+```sh
+npx eas-cli@latest env:set --name EXPO_PUBLIC_API_URL --value http://192.168.1.25:5000 --environment preview --visibility plaintext
+npx eas-cli@latest build --profile apk --platform android
+```
+
+The Android config plugin allows cleartext traffic only when the configured API URL uses `http://`; use HTTPS for production or public networks. A phone and computer using a local backend must be on the same Wi-Fi, and the computer firewall must allow port `5000`.
+
 ## Seeded demo accounts
 
 These accounts are inserted when the users collection is empty:

@@ -13,10 +13,9 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
-      }
+        "foregroundImage": "./assets/icon.png"
+      },
+      "package": "com.abdullah2390.restaurantapp"
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -25,7 +24,23 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "expo-font"
-    ]
+      "expo-font",
+      "./plugins/withAndroidCleartextTraffic",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#F7EBD8",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 240,
+          "resizeMode": "contain"
+        }
+      ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "839c599b-c679-4fdb-8954-4c872e3fc349"
+      }
+    }
   }
 }
