@@ -1,0 +1,8 @@
+flowchart LR
+  User[Customer or manager] --> App[Expo React Native app]
+  App -->|JSON and bearer token| API[Express REST API]
+  API --> Middleware[Auth middleware]
+  API --> Controllers
+  Controllers --> Models[Mongoose models]
+  Models --> DB[(MongoDB)]
+  Seed[server/seed.js] --> DB

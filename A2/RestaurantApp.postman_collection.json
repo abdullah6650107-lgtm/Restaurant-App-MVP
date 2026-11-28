@@ -1,0 +1,20 @@
+{
+  "info": {
+    "_postman_id": "f1756d8a-562a-4eaf-98b8-96f3c323a21f",
+    "name": "Restaurant App A2 API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {"key":"baseUrl","value":"http://localhost:5000"},
+    {"key":"token","value":""},
+    {"key":"itemId","value":""}
+  ],
+  "item": [
+    {"name":"Health","request":{"method":"GET","url":"{{baseUrl}}/api/health"}},
+    {"name":"Customer login","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"email\":\"customer@example.com\",\"password\":\"Customer123\"}"},"url":"{{baseUrl}}/api/auth/login"}},
+    {"name":"Menu list","request":{"method":"GET","url":"{{baseUrl}}/api/menu"}},
+    {"name":"Create order","request":{"method":"POST","header":[{"key":"Authorization","value":"Bearer {{token}}"},{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"items\":[{\"menuItem\":\"{{itemId}}\",\"quantity\":1}]}"},"url":"{{baseUrl}}/api/orders"}},
+    {"name":"My reservations","request":{"method":"GET","header":[{"key":"Authorization","value":"Bearer {{token}}"}],"url":"{{baseUrl}}/api/reservations/my"}},
+    {"name":"Submit review","request":{"method":"POST","header":[{"key":"Authorization","value":"Bearer {{token}}"},{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"rating\":5,\"text\":\"Great food\"}"},"url":"{{baseUrl}}/api/reviews"}}
+  ]
+}

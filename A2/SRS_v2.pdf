@@ -1,0 +1,149 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R 5 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 2572 >>
+stream
+BT
+/F1 10 Tf
+50 760 Td
+14 TL
+(Restaurant App - Software Requirements Specification v2) Tj
+T*
+() Tj
+T*
+(1. Purpose and scope) Tj
+T*
+(The app supports customers browsing a restaurant menu, placing and tracking orders, book) Tj
+T*
+(ing tables, and submitting reviews. Managers administer menu items, orders, reservations) Tj
+T*
+(, accounts, and dashboard summaries.) Tj
+T*
+() Tj
+T*
+(2. Actors) Tj
+T*
+(Customer: registers or signs in, browses the menu, creates orders and reservations, subm) Tj
+T*
+(its reviews, and views their profile and reservations.) Tj
+T*
+(Manager: signs in, manages menu items, order status, reservations, customer accounts, an) Tj
+T*
+(d dashboard information.) Tj
+T*
+() Tj
+T*
+(3. Functional requirements) Tj
+T*
+(FR-01 Users can register and authenticate with email and password; passwords are hashed.) Tj
+T*
+(FR-02 Users can browse menu items; managers can create, edit, and delete them.) Tj
+T*
+(FR-03 Authenticated users can place orders. Server totals are calculated from current st) Tj
+T*
+(ored menu prices.) Tj
+T*
+(FR-04 Managers can update order status among pending, preparing, ready, served, and canc) Tj
+T*
+(elled. Only pending orders can be cancelled.) Tj
+T*
+(FR-05 Customers can create reservations and view their own; managers can list and accept) Tj
+T*
+( or decline reservations.) Tj
+T*
+(FR-06 Customers may cancel their own pending reservations.) Tj
+T*
+(FR-07 Signed-in customers can submit a 1-5 rating with optional text.) Tj
+T*
+(FR-08 Managers can view dashboard summaries and manage customer accounts.) Tj
+T*
+(FR-09 Protected APIs authenticate with bearer tokens and enforce role/ownership permissi) Tj
+T*
+(ons.) Tj
+T*
+() Tj
+T*
+(4. Non-functional requirements) Tj
+T*
+(NFR-01 The mobile client communicates with the backend using JSON over HTTP or HTTPS.) Tj
+T*
+(NFR-02 Database connection strings and JWT secrets stay in server-side environment varia) Tj
+T*
+(bles.) Tj
+T*
+(NFR-03 Errors use meaningful HTTP status codes and JSON error messages.) Tj
+T*
+(NFR-04 Mobile connectivity supports simulator, emulator, and LAN device base URLs.) Tj
+T*
+(NFR-05 Backend code separates routes, controllers, models, config, and middleware.) Tj
+T*
+() Tj
+T*
+(5. Data) Tj
+T*
+(Users have name, unique email, password hash, and role. Menu items have name, category, ) Tj
+T*
+(price, description, image, and availability. Orders keep customer, item snapshots, total) Tj
+T*
+(s, status, and notes. Reservations reference a customer and table with time, party size,) Tj
+T*
+( and status. Reviews reference a customer with a rating and text.) Tj
+T*
+() Tj
+T*
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> /Contents 6 0 R >>
+endobj
+6 0 obj
+<< /Length 501 >>
+stream
+BT
+/F1 10 Tf
+50 760 Td
+14 TL
+(6. Interfaces) Tj
+T*
+(REST endpoint table is in the repository README. A Postman collection is included in thi) Tj
+T*
+(s folder. Architecture and data model diagrams are in diagrams/.) Tj
+T*
+() Tj
+T*
+(7. Constraints and assumptions) Tj
+T*
+(MongoDB is required for persistent storage. Seed accounts and menu data are for demonstr) Tj
+T*
+(ation. Set EXPO_PUBLIC_API_URL to a host reachable from the target device. Reviews requi) Tj
+T*
+(re authentication.) Tj
+T*
+() Tj
+T*
+ET
+endstream
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000121 00000 n 
+0000000296 00000 n 
+0000002920 00000 n 
+0000003095 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R >>
+startxref
+3647
+%%EOF
